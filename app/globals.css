@@ -210,7 +210,7 @@ textarea:focus,
 select:focus {
   outline: none;
   border-color: var(--input-focus-ring);
-  box-shadow: 0 0 0 3px var(--input-focus-ring + 33);
+  box-shadow: 0 0 0 3px var(--input-focus-ring);
 }
 
 ::placeholder {
