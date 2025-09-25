@@ -2,7 +2,7 @@
 @import "tailwindcss";
 
 /* -------------------------------
-   Design Tokens (Light Mode)
+    Design Tokens (Light Mode)
 -------------------------------- */
 :root {
   /* Base Colors */
@@ -38,7 +38,7 @@
     Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
 
   --font-size-base: 1rem;
-  --line-height-base: 1.75;
+  --line-height-base: 1.7;
 
   --font-size-h1: 2.25rem;
   --font-size-h2: 1.875rem;
@@ -56,7 +56,7 @@
 }
 
 /* -------------------------------
-   Dark Mode
+    Dark Mode
 -------------------------------- */
 .dark {
   --background: #0a0a0a;
@@ -81,7 +81,7 @@
 }
 
 /* -------------------------------
-   Global Styles
+    Global Styles
 -------------------------------- */
 body {
   background: var(--background);
@@ -101,7 +101,7 @@ body {
 }
 
 /* -------------------------------
-   Headings
+    Headings
 -------------------------------- */
 h1,
 h2,
@@ -113,11 +113,14 @@ h6 {
   font-weight: 700;
   color: var(--foreground);
   line-height: var(--line-height-headings);
-  margin-bottom: 0.75em;
+  /* **اصلاح نهایی برای خوانایی تیترها** */
+  margin-bottom: 0.5em; /* فاصله مناسب زیر تیتر برای اتصال به متن بعدی */
+  margin-top: 1.25em; /* فاصله بیشتر بالای تیتر برای جدا شدن از متن قبلی */
 }
 
 h1 {
   font-size: var(--font-size-h1);
+  margin-top: 2em; /* تیتر بزرگتر، فاصله بالاتر بیشتر */
 }
 h2 {
   font-size: var(--font-size-h2);
@@ -134,9 +137,17 @@ h5 {
 h6 {
   font-size: var(--font-size-h6);
 }
+.line-h p {
+  line-height: 2 !important;
+}
 
+@media (max-width: 640px) {
+  .line-h p {
+    line-height: 2.3 !important;
+  }
+}
 /* -------------------------------
-   Links
+    Links
 -------------------------------- */
 a {
   color: var(--primary);
@@ -146,11 +157,11 @@ a {
 
 a:hover {
   color: var(--accent);
-  transform: translateX(2px);
+  transform: translateX(-2px); /* اصلاح برای RTL */
 }
 
 /* -------------------------------
-   Buttons
+    Buttons
 -------------------------------- */
 .button-primary {
   background: var(--primary);
@@ -173,6 +184,7 @@ a:hover {
   padding: 0.75rem 1.5rem;
   border-radius: var(--radius-md);
   font-weight: 600;
+  transition: filter 0.2s ease;
 }
 
 .button-secondary:hover {
@@ -180,7 +192,7 @@ a:hover {
 }
 
 /* -------------------------------
-   Cards
+    Cards
 -------------------------------- */
 .card {
   background: var(--muted);
@@ -191,7 +203,7 @@ a:hover {
 }
 
 /* -------------------------------
-   Forms
+    Forms
 -------------------------------- */
 input,
 textarea,
@@ -210,7 +222,7 @@ textarea:focus,
 select:focus {
   outline: none;
   border-color: var(--input-focus-ring);
-  box-shadow: 0 0 0 3px var(--input-focus-ring);
+  box-shadow: 0 0 0 2px var(--input-focus-ring);
 }
 
 ::placeholder {
@@ -218,7 +230,7 @@ select:focus {
 }
 
 /* -------------------------------
-   Tables
+    Tables
 -------------------------------- */
 table {
   width: 100%;
@@ -242,11 +254,29 @@ tbody tr:nth-child(even) {
 }
 
 /* -------------------------------
-   Lists & RTL Fix
+    Lists & RTL Fix
 -------------------------------- */
 ul,
 ol {
   padding-right: 1.5rem;
   padding-left: 0;
   text-align: right;
+}
+
+/* -------------------------------
+    CUSTOM FIXES
+-------------------------------- */
+
+/** کنترل فاصله عمودی بین پاراگراف ها و لیست ها */
+p,
+ul,
+ol,
+blockquote {
+  margin-bottom: 0.75rem; /* فاصله پایین پاراگراف ها و لیست ها */
+  margin-top: 0;
+}
+
+/** جلوگیری از حاشیه اضافی در آخرین عنصر یک بلاک محتوایی */
+.content-block > *:last-child {
+  margin-bottom: 0;
 }
