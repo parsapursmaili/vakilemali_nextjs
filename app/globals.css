@@ -1,26 +1,252 @@
+@config "../tailwind.config.js";
 @import "tailwindcss";
 
+/* -------------------------------
+   Design Tokens (Light Mode)
+-------------------------------- */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Base Colors */
+  --background: #f9fafb;
+  --foreground: #111827;
+
+  --primary: #1e3a8a; /* آبی حقوقی */
+  --primary-light: #3b82f6; /* آبی روشن برای Hover */
+  --secondary: #16a34a; /* سبز CTA */
+  --accent: #f97316; /* نارنجی برای لینک‌ها / جزئیات */
+  --muted: #e5e7eb; /* خاکستری ملایم */
+  --destructive: #dc2626; /* خطا */
+
+  /* Status */
+  --error: #e53935;
+  --error-background: #ffebee;
+  --error-border: #ef9a9a;
+
+  /* Inputs */
+  --input-background: #ffffff;
+  --input-border: #d1d5db;
+  --input-focus-ring: var(--primary);
+  --input-placeholder: #6b7280;
+
+  /* Selection & Highlight */
+  --selection-background: var(--primary);
+  --selection-foreground: var(--background);
+  --highlight-background: #fff899;
+  --highlight-foreground: #1c1c20;
+
+  /* Typography */
+  --font-sans: var(--font-vazir), -apple-system, BlinkMacSystemFont, "Segoe UI",
+    Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+
+  --font-size-base: 1rem;
+  --line-height-base: 1.75;
+
+  --font-size-h1: 2.25rem;
+  --font-size-h2: 1.875rem;
+  --font-size-h3: 1.5rem;
+  --font-size-h4: 1.25rem;
+  --font-size-h5: 1.125rem;
+  --font-size-h6: 1rem;
+  --line-height-headings: 1.3;
+
+  /* Radius */
+  --radius-sm: 0.25rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-full: 9999px;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+/* -------------------------------
+   Dark Mode
+-------------------------------- */
+.dark {
+  --background: #0a0a0a;
+  --foreground: #f5f5f5;
+
+  --primary: #2563eb;
+  --primary-light: #60a5fa;
+  --secondary: #22c55e;
+  --accent: #fb923c;
+  --muted: #374151;
+  --destructive: #ef4444;
+
+  /* Inputs */
+  --input-background: var(--background);
+  --input-border: #33334d;
+  --input-focus-ring: var(--primary);
+  --input-placeholder: #9ca3af;
+
+  /* Highlight */
+  --highlight-background: #44441f;
+  --highlight-foreground: #fff;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
+/* -------------------------------
+   Global Styles
+-------------------------------- */
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans);
+  font-weight: 400;
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-base);
+  transition: background-color 0.3s ease, color 0.3s ease;
+  direction: rtl;
+  text-align: right;
+}
+
+::selection {
+  background: var(--selection-background);
+  color: var(--selection-foreground);
+}
+
+/* -------------------------------
+   Headings
+-------------------------------- */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-sans);
+  font-weight: 700;
+  color: var(--foreground);
+  line-height: var(--line-height-headings);
+  margin-bottom: 0.75em;
+}
+
+h1 {
+  font-size: var(--font-size-h1);
+}
+h2 {
+  font-size: var(--font-size-h2);
+}
+h3 {
+  font-size: var(--font-size-h3);
+}
+h4 {
+  font-size: var(--font-size-h4);
+}
+h5 {
+  font-size: var(--font-size-h5);
+}
+h6 {
+  font-size: var(--font-size-h6);
+}
+
+/* -------------------------------
+   Links
+-------------------------------- */
+a {
+  color: var(--primary);
+  text-decoration: none;
+  transition: color 0.3s ease, transform 0.2s ease;
+}
+
+a:hover {
+  color: var(--accent);
+  transform: translateX(2px);
+}
+
+/* -------------------------------
+   Buttons
+-------------------------------- */
+.button-primary {
+  background: var(--primary);
+  color: var(--background);
+  padding: 0.75rem 1.5rem;
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.button-primary:hover {
+  background: var(--primary-light);
+  transform: translateY(-2px);
+}
+
+.button-secondary {
+  background: var(--secondary);
+  color: var(--background);
+  padding: 0.75rem 1.5rem;
+  border-radius: var(--radius-md);
+  font-weight: 600;
+}
+
+.button-secondary:hover {
+  filter: brightness(1.1);
+}
+
+/* -------------------------------
+   Cards
+-------------------------------- */
+.card {
+  background: var(--muted);
+  color: var(--foreground);
+  border-radius: var(--radius-md);
+  padding: 1rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* -------------------------------
+   Forms
+-------------------------------- */
+input,
+textarea,
+select {
+  background: var(--input-background);
+  color: var(--foreground);
+  border: 1px solid var(--input-border);
+  border-radius: var(--radius-md);
+  padding: 0.75rem;
+  width: 100%;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  outline: none;
+  border-color: var(--input-focus-ring);
+  box-shadow: 0 0 0 3px var(--input-focus-ring + 33);
+}
+
+::placeholder {
+  color: var(--input-placeholder);
+}
+
+/* -------------------------------
+   Tables
+-------------------------------- */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.5rem 0;
+}
+
+th,
+td {
+  padding: 0.75rem;
+  border: 1px solid var(--muted);
+}
+
+thead th {
+  background: var(--primary);
+  color: var(--background);
+}
+
+tbody tr:nth-child(even) {
+  background: var(--muted);
+}
+
+/* -------------------------------
+   Lists & RTL Fix
+-------------------------------- */
+ul,
+ol {
+  padding-right: 1.5rem;
+  padding-left: 0;
+  text-align: right;
 }
