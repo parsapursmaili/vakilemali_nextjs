@@ -34,50 +34,30 @@ export default async function SinglePostPage({ params }) {
 
   const rawContent = String(post.content || "");
 
-  // **اقدامات نهایی برای رفع مشکل اینترها و هدینگ‌ها:**
-  let processedContent = rawContent;
-
-  // 1. حذف اینترهای مزاحم بلافاصله بعد از تگ‌های بسته هدینگ (مثلاً </h2>\n)
-  // این Regex تمامی </hX>\n را به </hX> تبدیل می‌کند.
-  processedContent = processedContent.replace(/<\/h[1-6]>\n/g, (match) =>
-    match.replace("\n", "")
-  );
-
-  // 2. فشرده‌سازی اینترهای اضافی: \n\n+ را به \n تبدیل می‌کند (مشکل قبلی)
-  processedContent = processedContent.replace(/\n\n+/g, "\n");
-
-  // 3. تبدیل اینترهای تکی باقیمانده به <br/> (مشکل قبلی)
-  processedContent = processedContent.replace(/\n/g, "<br/>");
-
   const categories = terms.filter((t) => t.type === "category");
   const tags = terms.filter((t) => t.type === "tag");
 
   return (
     <main className="container mx-auto p-4 md:p-8 max-w-4xl">
-      {" "}
       <article className="bg-white dark:bg-[#1a1a1a] shadow-2xl rounded-xl overflow-hidden border-2 border-primary/10 transition-colors">
-        {" "}
         {post.thumbnail && (
           <img
             src={post.thumbnail}
             alt={post.title}
             className="w-full h-96 object-cover object-center shadow-inner-lg"
           />
-        )}{" "}
+        )}
         <header className="p-6 md:p-10 border-b border-muted dark:border-muted/30">
-          {" "}
           <h1 className="text-5xl lg:text-6xl font-extrabold mb-4 leading-tight text-primary dark:text-primary-light">
             {post.title}
-          </h1>{" "}
+          </h1>
           <div className="flex flex-wrap items-center text-sm text-foreground/70 justify-between mt-4 border-t pt-4 dark:border-muted/50">
-            {" "}
             <div className="flex items-center space-x-4 space-x-reverse">
-              {" "}
               <span className="flex items-center">
                 <Clock className="w-4 h-4 ml-1 text-accent" />
                 تاریخ انتشار:{" "}
                 {new Date(post.created_at).toLocaleDateString("fa-IR")}
-              </span>{" "}
+              </span>
               {categories.length > 0 && (
                 <span className="flex items-center">
                   <Tag className="w-4 h-4 ml-1 text-secondary" />
@@ -93,21 +73,23 @@ export default async function SinglePostPage({ params }) {
                     </Link>
                   ))}
                 </span>
-              )}{" "}
-            </div>{" "}
-            <PostViews postId={post.id} initialViews={post.view_count} />{" "}
-          </div>{" "}
-        </header>{" "}
-        <section className="post-content p-6 md:p-10 text-foreground/90 leading-loose text-justify">
-          {" "}
+              )}
+            </div>
+            <PostViews postId={post.id} initialViews={post.view_count} />
+          </div>
+        </header>
+
+        {/* محتوا */}
+        <section className="post-content p-6 md:p-10 text-foreground/90 text-justify">
           <div
-            className="line-h prose prose-lg dark:prose-invert prose-blue max-w-none rtl" // کلاس preserve-whitespace حذف شده است
-            dangerouslySetInnerHTML={{ __html: processedContent }} // محتوای پردازش‌شده اعمال شد
-          />{" "}
-        </section>{" "}
+            className="line-h prose prose-lg dark:prose-invert prose-blue max-w-none rtl"
+            dangerouslySetInnerHTML={{ __html: rawContent }}
+          />
+        </section>
+
+        {/* تگ‌ها */}
         {tags.length > 0 && (
           <footer className="p-6 md:p-10 border-t border-muted dark:border-muted/30">
-            {" "}
             <div className="flex flex-wrap gap-2 items-center">
               <span className="font-semibold text-foreground">برچسب‌ها:</span>
               {tags.map((tag) => (
@@ -119,13 +101,14 @@ export default async function SinglePostPage({ params }) {
                   #{tag.name}
                 </Link>
               ))}
-            </div>{" "}
+            </div>
           </footer>
-        )}{" "}
-      </article>{" "}
+        )}
+      </article>
+
       <div className="mt-12">
         <PostCommentsSection postId={post.id} postSlug={postSlug} />
-      </div>{" "}
+      </div>
     </main>
   );
 }

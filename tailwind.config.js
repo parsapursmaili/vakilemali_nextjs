@@ -15,8 +15,6 @@ module.exports = {
         accent: "var(--accent)",
         muted: "var(--muted)",
         destructive: "var(--destructive)",
-
-        // برای استیت‌ها
         error: "var(--error)",
         "error-background": "var(--error-background)",
         "error-border": "var(--error-border)",
@@ -45,5 +43,5 @@ module.exports = {
       },
     },
   },
-  plugins: [],
+  plugins: [require("@tailwindcss/typography")],
 };
