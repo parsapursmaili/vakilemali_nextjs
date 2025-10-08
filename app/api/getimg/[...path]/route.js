@@ -1,146 +1,109 @@
-// api/getimg/[...path]/route.js
-
 import { NextResponse } from "next/server";
-import { join, dirname } from "path"; // 'dirname' را برای گرفتن مسیر پوشه اضافه می‌کنیم
-import { stat, readFile, writeFile, mkdir } from "fs/promises"; // 'mkdir' را برای ساخت پوشه اضافه می‌کنیم
-import { existsSync, mkdirSync } from "fs";
-import mime from "mime-types";
+import path from "path";
+import fs from "fs";
+import fsp from "fs/promises";
 import sharp from "sharp";
 
-// --- ثابت‌های پیکربندی ---
+const PUBLIC_DIR = path.join(process.cwd(), "public");
+const CACHE_DIR_NAME = "cache"; // public/cache
+const UPLOAD_DIR_NAMES = ["upload", "uploads"]; // public/upload یا public/uploads
 
-const UPLOADS_DIR = join(process.cwd(), "public", "uploads");
-const CACHE_DIR = join(process.cwd(), "public", "cache"); // مسیر صحیح و خارج از uploads
-const MEDIUM_WIDTH = 700;
-const QUALITY = 75; // مطابق با کد شما
-
-// --- راه‌اندازی اولیه ---
-if (!existsSync(CACHE_DIR)) {
-  console.log("Creating cache directory:", CACHE_DIR);
-  mkdirSync(CACHE_DIR, { recursive: true });
+// بررسی امنیت مسیر (جلوگیری از دسترسی به فایل‌های خارج از public)
+function isSafeRelative(p) {
+  const normalized = path.posix.normalize(p);
+  return !normalized.split("/").some((segment) => segment === "..");
 }
 
-// --- توابع کمکی ---
+// ساخت دایرکتوری اگر وجود ندارد
+async function ensureDir(dirPath) {
+  await fsp.mkdir(dirPath, { recursive: true });
+}
 
-/**
- * یک فایل تصویر را با هدرهای کشینگ قوی (ETag) به کلاینت ارسال می‌کند.
- * این تابع بدون تغییر باقی می‌ماند.
- */
-async function serveImage(filePath, request) {
+// چک کن فایل وجود دارد یا نه
+async function fileExists(filePath) {
   try {
-    const stats = await stat(filePath);
-    const etag = `"${stats.mtime.getTime()}-${stats.size}"`;
-    const ifNoneMatch = request.headers.get("if-none-match");
-
-    if (ifNoneMatch === etag) {
-      return new Response(null, { status: 304 }); // Not Modified
-    }
-
-    const imageBuffer = await readFile(filePath);
-    const contentType = mime.lookup(filePath) || "application/octet-stream";
-
-    return new Response(imageBuffer, {
-      headers: {
-        "Content-Type": contentType,
-        "Cache-Control": "public, max-age=31536000, immutable",
-        ETag: etag,
-      },
-      status: 200,
-    });
-  } catch (error) {
-    if (error.code === "ENOENT") {
-      return null;
-    }
-    throw error;
+    const st = await fsp.stat(filePath);
+    return st.isFile();
+  } catch {
+    return false;
   }
 }
 
-// --- کنترلر اصلی API (نسخه اصلاح شده) ---
-
-export async function GET(request, { params }) {
+export async function GET(req, { params }) {
   try {
-    const url = new URL(request.url);
-    const sizeTier = url.searchParams.get("size");
-
-    // ۱. ساخت مسیرها با حفظ ساختار زیرپوشه‌ها
-    const imagePathArray = params.path.map(decodeURIComponent);
-    const originalPath = join(UPLOADS_DIR, ...imagePathArray);
-
-    const originalFilename = imagePathArray[imagePathArray.length - 1];
-    const baseName = originalFilename.split(".").slice(0, -1).join(".");
-
-    // مسیر نسبی تصویر (مثلاً 'ahura/test.webp') را برای ساخت مسیر کش استفاده می‌کنیم
-    const relativePath = join(...imagePathArray);
-
-    // ۲. تعریف مسیرهای کش با حفظ ساختار پوشه‌ها
-    const cachedMediumFilename = `${baseName}-m-q${QUALITY}.webp`;
-    const cachedOrigFilename = `${baseName}-orig-q${QUALITY}.webp`;
-
-    // جایگزین کردن نام فایل اصلی با نام فایل کش
-    const cachedMediumPath = join(
-      CACHE_DIR,
-      dirname(relativePath),
-      cachedMediumFilename
-    );
-    const cachedOrigPath = join(
-      CACHE_DIR,
-      dirname(relativePath),
-      cachedOrigFilename
-    );
-
-    const requestedPath = sizeTier === "m" ? cachedMediumPath : cachedOrigPath;
-
-    // ۳. تلاش برای ارسال فایل از کش
-    const cachedImageResponse = await serveImage(requestedPath, request);
-    if (cachedImageResponse) {
-      return cachedImageResponse;
+    if (!params?.src || params.src.length === 0) {
+      return NextResponse.json({ error: "No path provided" }, { status: 400 });
     }
 
-    // ۴. خواندن فایل اصلی
-    const originalImageBuffer = await readFile(originalPath);
+    const rawSegments = params.src.map((seg) => decodeURIComponent(seg));
+    const relPath = rawSegments.join("/");
 
-    // ۵. بهینه‌سازی هر دو نسخه به صورت موازی
-    const [optimizedOrigBuffer, optimizedMediumBuffer] = await Promise.all([
-      sharp(originalImageBuffer).webp({ quality: QUALITY }).toBuffer(),
-      sharp(originalImageBuffer)
-        .resize({ width: MEDIUM_WIDTH })
-        .webp({ quality: QUALITY })
-        .toBuffer(),
-    ]);
+    // مسیر امن باشه
+    if (!isSafeRelative(relPath)) {
+      return NextResponse.json({ error: "Unsafe path" }, { status: 400 });
+    }
 
-    // ۶. ***مهم‌ترین اصلاح: ساخت زیرپوشه در کش قبل از ذخیره فایل***
-    await mkdir(dirname(requestedPath), { recursive: true });
+    // مسیر کامل کش و آپلود
+    const cacheFullPath = path.join(PUBLIC_DIR, CACHE_DIR_NAME, relPath);
+    const cacheDirForFile = path.dirname(cacheFullPath);
 
-    // ۷. ذخیره هر دو نسخه در پوشه کش به صورت موازی
-    await Promise.all([
-      writeFile(cachedOrigPath, optimizedOrigBuffer),
-      writeFile(cachedMediumPath, optimizedMediumBuffer),
-    ]);
+    // اگر فایل webp کش شده وجود دارد => همان را بده
+    if (await fileExists(cacheFullPath)) {
+      const stream = fs.createReadStream(cacheFullPath);
+      return new NextResponse(stream, {
+        status: 200,
+        headers: {
+          "Content-Type": "image/webp",
+          "Cache-Control": "public, max-age=31536000, immutable", // کش مرورگر تا 1 سال
+        },
+      });
+    }
 
-    // ۸. ارسال نسخه درخواست شده به کاربر
-    const bufferToSend =
-      sizeTier === "m" ? optimizedMediumBuffer : optimizedOrigBuffer;
+    // در پوشه‌های upload دنبال فایل بگرد
+    let foundOriginal = null;
+    for (const up of UPLOAD_DIR_NAMES) {
+      const candidate = path.join(PUBLIC_DIR, up, relPath);
+      if (await fileExists(candidate)) {
+        foundOriginal = candidate;
+        break;
+      }
+    }
 
-    return new Response(bufferToSend, {
-      headers: {
-        "Content-Type": "image/webp",
-        "Cache-Control": "public, max-age=31536000, immutable",
-      },
-      status: 200,
-    });
-  } catch (error) {
-    console.error("Image processing API error:", error);
-
-    if (error.code === "ENOENT") {
-      // این خطا معمولاً یعنی فایل اصلی در پوشه uploads پیدا نشده است
+    // اگه فایل اصلی نبود
+    if (!foundOriginal) {
       return NextResponse.json(
-        { error: "Original image not found." },
+        { error: "Original not found" },
         { status: 404 }
       );
     }
 
+    // آماده کردن مسیر کش
+    await ensureDir(cacheDirForFile);
+
+    // خواندن فایل اصلی
+    const imageBuffer = await fsp.readFile(foundOriginal);
+
+    // تبدیل به webp (حتی اگه خودش webp باشه برای اطمینان دوباره می‌سازه)
+    const convertedBuffer = await sharp(imageBuffer)
+      .webp({ quality: 75 })
+      .toBuffer();
+
+    // ذخیره در کش
+    await fsp.writeFile(cacheFullPath, convertedBuffer, { mode: 0o644 });
+
+    // برگردوندن تصویر به کاربر
+    return new NextResponse(convertedBuffer, {
+      status: 200,
+      headers: {
+        "Content-Type": "image/webp",
+        "Content-Length": String(convertedBuffer.length),
+        "Cache-Control": "public, max-age=31536000, immutable", // کش مرورگر تا 1 سال
+      },
+    });
+  } catch (err) {
+    console.error("image-api-error:", err);
     return NextResponse.json(
-      { error: "Internal server error during image processing." },
+      { error: "Internal server error" },
       { status: 500 }
     );
   }

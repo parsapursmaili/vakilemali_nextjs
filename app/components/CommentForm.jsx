@@ -33,22 +33,18 @@ export default function CommentForm({
   postId,
   parentCommentId,
   postSlug,
-  onCommentSubmitted,
   onCancelReply,
 }) {
   const initialState = { success: null, message: null };
-
   const [state, formAction] = useActionState(submitComment, initialState);
-
   const formRef = useRef(null);
 
   useEffect(() => {
     if (state.success) {
       formRef.current?.reset();
-      onCommentSubmitted();
       if (onCancelReply) onCancelReply();
     }
-  }, [state, onCommentSubmitted, onCancelReply]);
+  }, [state.success, onCancelReply]);
 
   return (
     <form

@@ -4,12 +4,7 @@ import { useState } from "react";
 import CommentForm from "./CommentForm";
 import { User, Reply } from "lucide-react";
 
-export default function CommentItem({
-  comment,
-  postId,
-  postSlug,
-  onCommentSubmitted,
-}) {
+export default function CommentItem({ comment, postId, postSlug }) {
   const [isReplying, setIsReplying] = useState(false);
 
   const toggleReply = () => setIsReplying((prev) => !prev);
@@ -23,7 +18,7 @@ export default function CommentItem({
           : "bg-muted/50 dark:bg-muted/70 shadow-md"
       }`}
     >
-      {/* هدر کامنت */}
+      {/* هدر */}
       <div className="flex justify-between items-start mb-3 border-b border-primary/10 pb-2">
         <div className="flex items-center">
           <User className="w-5 h-5 ml-2 text-primary dark:text-primary-light" />
@@ -40,7 +35,7 @@ export default function CommentItem({
         </span>
       </div>
 
-      {/* محتوای کامنت */}
+      {/* محتوا */}
       <p className="text-foreground/90 mb-4 leading-relaxed text-justify">
         {comment.content}
       </p>
@@ -63,14 +58,13 @@ export default function CommentItem({
             postId={postId}
             parentCommentId={comment.id}
             postSlug={postSlug}
-            onCommentSubmitted={onCommentSubmitted}
             onCancelReply={handleCancelReply}
           />
         </div>
       )}
 
-      {/* نمایش پاسخ‌های تو در تو */}
-      {comment.replies && comment.replies.length > 0 && (
+      {/* پاسخ‌های تو در تو */}
+      {comment.replies?.length > 0 && (
         <div className="mt-6 space-y-4 border-t-2 border-primary/20 pt-6">
           {comment.replies.map((reply) => (
             <CommentItem
@@ -78,7 +72,6 @@ export default function CommentItem({
               comment={reply}
               postId={postId}
               postSlug={postSlug}
-              onCommentSubmitted={onCommentSubmitted}
             />
           ))}
         </div>

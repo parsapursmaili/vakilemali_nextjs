@@ -10,11 +10,10 @@ import { revalidatePath } from "next/cache";
  */
 export async function getCommentsData(postId) {
   try {
-    const comments = await db.query(
+    const [comments] = await db.query(
       "SELECT id, parent_id, author_name, content, created_at FROM comments WHERE post_id = ? AND status = 'approved' ORDER BY created_at ASC",
       [postId]
     );
-
     // منطق ساده برای ساختار درختی (Nested) کامنت‌ها
     const commentsMap = {};
     const rootComments = [];

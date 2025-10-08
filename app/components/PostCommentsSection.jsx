@@ -1,27 +1,12 @@
-"use client";
-
-import { useState, useEffect, useCallback } from "react";
-import { getCommentsData } from "@/[slug]/comments"; // Server Action کامنت‌ها
+// ❌ دیگه نیازی به "use client" نیست
 import CommentItem from "./CommentItem";
 import CommentForm from "./CommentForm";
+import { getCommentsData } from "@/[slug]/comments"; // همون Server Action
 
-export default function PostCommentsSection({ postId, postSlug }) {
-  const [comments, setComments] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
+export default async function PostCommentsSection({ postId, postSlug }) {
+  // ✅ مستقیم در سرور دیتا رو بگیر
+  const comments = await getCommentsData(postId);
 
-  // 💡 تابع برای واکشی مجدد داده‌ها (پس از ثبت کامنت یا لود اولیه)
-  const fetchComments = useCallback(async () => {
-    setIsLoading(true);
-    const fetchedComments = await getCommentsData(postId);
-    setComments(fetchedComments);
-    setIsLoading(false);
-  }, [postId]);
-
-  useEffect(() => {
-    fetchComments();
-  }, [fetchComments]);
-
-  // نمایش تعداد کامنت‌هایی که status آن‌ها 'approved' است
   const totalComments =
     comments.length + comments.reduce((sum, c) => sum + c.replies.length, 0);
 
@@ -34,21 +19,12 @@ export default function PostCommentsSection({ postId, postSlug }) {
         نظرات حقوقی ({new Intl.NumberFormat("fa-IR").format(totalComments)})
       </h2>
 
-      {/* فرم ثبت کامنت اصلی */}
-      <CommentForm
-        postId={postId}
-        postSlug={postSlug}
-        parentCommentId={null}
-        onCommentSubmitted={fetchComments}
-      />
+      {/* فرم ثبت نظر */}
+      <CommentForm postId={postId} postSlug={postSlug} parentCommentId={null} />
 
       {/* لیست کامنت‌ها */}
       <div className="mt-10 space-y-6">
-        {isLoading ? (
-          <p className="text-center text-foreground/70 text-lg py-10">
-            در حال بررسی سوابق و بارگذاری نظرات... ⏳
-          </p>
-        ) : comments.length === 0 ? (
+        {comments.length === 0 ? (
           <p className="text-center text-foreground/70 text-lg py-10">
             هیچ نظری ثبت نشده است. اولین نظر حقوقی را شما ثبت کنید! 💬
           </p>
@@ -59,7 +35,6 @@ export default function PostCommentsSection({ postId, postSlug }) {
               comment={comment}
               postId={postId}
               postSlug={postSlug}
-              onCommentSubmitted={fetchComments}
             />
           ))
         )}
