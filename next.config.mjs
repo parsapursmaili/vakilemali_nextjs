@@ -1,34 +1,23 @@
 // next.config.js
+import path from "node:path";
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
 
   experimental: {
-    serverActions: {}, // ✅ مقدار درست برای Next.js 15
+    serverActions: {},
   },
 
   images: {
-    // 🚀 فعال کردن لودر سفارشی به عنوان پیش‌فرض سراسری
-    loader: "custom",
-    loaderFile: "./imageLoader.js",
-
-    // فرمت خروجی بهینه
+    // 🛑 این خطوط را حذف کنید 🛑
+    // loader: "custom",
+    // loaderFile: "./imageLoader.js",
     formats: ["image/webp"],
-
-    // دامنه‌های مجاز برای بارگذاری تصاویر
     remotePatterns: [
-      {
-        protocol: "https",
-        hostname: "**.vakilemali.ir",
-      },
-      {
-        protocol: "https",
-        hostname: "**.gravatar.com",
-      },
+      { protocol: "https", hostname: "**.vakilemali.ir" },
+      { protocol: "https", hostname: "**.gravatar.com" },
     ],
-
-    // کش ۳۰ روزه برای بهبود عملکرد
     minimumCacheTTL: 60 * 60 * 24 * 30,
   },
 
