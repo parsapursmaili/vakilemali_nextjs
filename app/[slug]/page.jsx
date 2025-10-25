@@ -1,124 +1,102 @@
-import { getPostData } from "./post";
-import PostViews from "@/components/PostViews";
-import PostCommentsSection from "@/components/PostCommentsSection";
+import dynamic from "next/dynamic";
 import Link from "next/link";
-import { Clock, Tag } from "lucide-react";
-import { notFound } from "next/navigation";
 import Image from "next/image";
+import { notFound } from "next/navigation";
+import { Clock, Tag, User, Eye } from "lucide-react";
 import parse from "html-react-parser";
 
-export const revalidate = 3600;
+// بخش ایمپورت‌ها: توابع و کامپوننت‌های مورد نیاز
+import { getPostData, getRelatedPosts } from "./post";
+import PostsSlider from "@/components/PostsSlider";
 
-// 🧠 تابع کمکی برای پردازش مسیر تصویر — نسخه سازگار با مسیر /media
-function processImageUrlForMedia(
-  originalSrc,
-  defaultWidth = 1200,
-  defaultQuality = 75
-) {
-  if (!originalSrc) return undefined;
+// بارگذاری داینامیک کامپوننت‌ها برای بهینه‌سازی
+const PostViews = dynamic(() => import("@/components/PostViews"), {
+  loading: () => (
+    <div className="text-sm text-foreground/70 flex items-center">
+      <Eye className="w-4 h-4 ml-1 text-primary/70" /> بارگذاری بازدیدها...
+    </div>
+  ),
+});
 
+const PostCommentsSection = dynamic(
+  () => import("@/components/PostCommentsSection"),
+  {
+    loading: () => (
+      <div className="p-6 bg-muted/50 rounded-lg text-center">
+        در حال بارگذاری بخش نظرات...
+      </div>
+    ),
+  }
+);
+
+// تابع کمکی برای پاکسازی URL تصویر
+function cleanImageUrlPath(src) {
+  if (!src) return undefined;
   try {
-    let finalPathSegment = originalSrc;
-
-    // اگر تصویر از وردپرس با http یا https بیاد
-    if (
-      originalSrc.startsWith("http://") ||
-      originalSrc.startsWith("https://")
-    ) {
-      const url = new URL(originalSrc);
-
-      if (url.pathname.includes("/uploads/")) {
-        // فقط مسیر بعد از uploads/ را جدا می‌کنیم
-        const pathAfterUploads = url.pathname.split("/uploads/")[1];
-
-        // حذف suffix ابعاد مثل -300x169
-        const parts = pathAfterUploads.split("/");
-        const filename = parts.pop();
-        const cleanedFilename = filename.replace(/-\d+x\d+\./, ".");
-        finalPathSegment = [...parts, cleanedFilename].join("/");
-      } else {
-        finalPathSegment = url.pathname.slice(1);
-      }
-    } else if (originalSrc.includes("/uploads/")) {
-      // اگر مسیر نسبی باشد
-      const idx = originalSrc.search(/uploads?\//i);
-      if (idx !== -1) {
-        finalPathSegment = originalSrc.slice(
-          idx + (originalSrc[idx + 7] === "s" ? 8 : 7)
-        );
-      }
-    }
-
-    // رمزگذاری مسیر
-    const encodedPath = finalPathSegment
-      .split("/")
-      .map(encodeURIComponent)
-      .join("/");
-
-    // مسیر جدید از route handler /media
-    return `/media/${encodedPath}?w=${defaultWidth}&q=${defaultQuality}`;
-  } catch (error) {
-    console.error("Error processing image URL:", error);
-    return originalSrc;
+    const url = src.startsWith("http") ? new URL(src).pathname : src;
+    const idx = url.search(/uploads?\//i);
+    const path = idx !== -1 ? url.slice(idx) : url;
+    return `/${path.replace(/-\d+x\d+\./, ".").replace(/^\/+/, "")}`;
+  } catch {
+    return src;
   }
 }
 
-// 🧠 متادیتا برای SEO و OpenGraph
+// تولید متادیتای صفحه برای سئو
 export async function generateMetadata({ params }) {
-  const slug = await params.slug;
+  const { slug } = params;
   const { post } = await getPostData(slug);
-
   if (!post) notFound();
 
   const excerpt =
     post.excerpt ||
-    (typeof post.content === "string" && post.content
-      ? post.content.substring(0, 150) + "..."
-      : "توضیحات پیش‌فرض");
-
-  const ogImageUrl = post.thumbnail
-    ? processImageUrlForMedia(post.thumbnail, 1200, 75)
+    (post.content ? post.content.substring(0, 150) + "..." : "");
+  const image = post.thumbnail
+    ? cleanImageUrlPath(post.thumbnail)
     : "/images/default-social.jpg";
 
   return {
-    title: post.title || "عنوان پیش‌فرض",
+    title: post.title,
     description: excerpt,
-    openGraph: {
-      images: [ogImageUrl],
-    },
+    openGraph: { images: [image] },
+    alternates: { canonical: `/${slug}` },
+    keywords: post.tags?.map((t) => t.name).join(", "),
   };
 }
 
-// 🧱 صفحه اصلی پست
+// کامپوننت اصلی صفحه پست تکی
 export default async function SinglePostPage({ params }) {
-  const slug = await params.slug;
-  const { post, terms } = await getPostData(slug);
+  const { slug } = params;
 
+  // بخش دریافت داده‌ها از سرور
+  const { post, terms } = await getPostData(slug);
   if (!post) notFound();
 
-  const rawContent = String(post.content || "");
   const categories = terms.filter((t) => t.type === "category");
   const tags = terms.filter((t) => t.type === "tag");
+  const primaryCategory = categories.length > 0 ? categories[0] : null;
 
-  // 🧩 تبدیل محتوای HTML به JSX
-  const parsedContent = parse(rawContent, {
-    replace: (domNode) => {
-      if (domNode.name === "img") {
-        const { src, alt, width, height } = domNode.attribs;
-        const processedSrc = processImageUrlForMedia(
-          src,
-          parseInt(width) || 800,
-          75
-        );
+  const { posts: relatedPosts } = await getRelatedPosts({
+    limit: 4,
+    excludeId: post.id,
+    categoryId: primaryCategory ? primaryCategory.id : null,
+  });
 
+  // پردازش محتوای HTML برای نمایش صحیح تصاویر
+  const content = parse(String(post.content || ""), {
+    replace: (node) => {
+      if (node.name === "img") {
+        const { src, alt } = node.attribs;
+        const cleaned = cleanImageUrlPath(src);
         return (
-          <div className="my-6 rounded-lg overflow-hidden relative w-full h-auto">
+          <div className="my-6 overflow-hidden rounded-xl !mx-auto">
             <Image
-              src={processedSrc}
-              alt={alt || "تصویر"}
-              width={parseInt(width) || 800}
-              height={parseInt(height) || 500}
-              className="rounded-lg mx-auto object-cover"
+              src={cleaned}
+              alt={alt || ""}
+              width={1200}
+              height={600}
+              className="w-full h-auto object-cover rounded-xl shadow-md !mx-auto"
+              sizes="(max-width:768px) 100vw, 800px"
             />
           </div>
         );
@@ -126,72 +104,94 @@ export default async function SinglePostPage({ params }) {
     },
   });
 
-  const thumbnailSrc = processImageUrlForMedia(post.thumbnail, 1200, 75);
-
   return (
-    <main className="container mx-auto p-4 md:p-8 max-w-4xl">
-      <article className="bg-white dark:bg-[#1a1a1a] shadow-2xl rounded-xl overflow-hidden border-2 border-primary/10 transition-colors">
-        {thumbnailSrc && (
-          <Image
-            src={thumbnailSrc}
-            alt={post.title || "تصویر شاخص"}
-            width={1200}
-            height={600}
-            className="w-full h-96 object-cover object-center shadow-inner-lg"
-            priority
-          />
+    <main className="w-full !p-0">
+      {/* بخش اصلی محتوای مقاله */}
+      <article
+        className="
+          w-full sm:max-w-4xl sm:mx-auto
+          sm:bg-white sm:dark:bg-[#1a1a1a]
+          sm:shadow-xl sm:rounded-xl sm:border sm:border-muted/30
+          transition-all duration-300
+          sm:p-8 p-0
+        "
+      >
+        {post.thumbnail && (
+          <div className="w-full p-2 sm:p-3">
+            <div className="overflow-hidden rounded-2xl border border-muted/30 shadow-sm sm:shadow-md hover:shadow-lg transition-shadow duration-300">
+              <Image
+                src={cleanImageUrlPath(post.thumbnail)}
+                alt={post.title}
+                width={1200}
+                height={900}
+                className="w-full object-cover aspect-[4/3]"
+                priority
+              />
+            </div>
+          </div>
         )}
 
-        <header className="p-6 md:p-10 border-b border-muted dark:border-muted/30">
-          <h1 className="text-5xl lg:text-6xl font-extrabold mb-4 leading-tight text-primary dark:text-primary-light">
+        <header className="!px-4 sm:!px-0 pt-6 pb-4 border-b border-muted/30 dark:border-muted/40">
+          <h1 className="font-bold text-primary leading-tight mb-4 text-3xl md:text-4xl sm:text-3xl">
             {post.title}
           </h1>
 
-          <div className="flex flex-wrap items-center text-sm text-foreground/70 justify-between mt-4 border-t pt-4 dark:border-muted/50">
-            <div className="flex items-center space-x-4 space-x-reverse">
-              <span className="flex items-center">
-                <Clock className="w-4 h-4 ml-1 text-accent" />
-                تاریخ انتشار:{" "}
-                {new Date(post.created_at).toLocaleDateString("fa-IR")}
+          <div className="flex flex-wrap items-center gap-3 text-sm text-foreground/70 border-t pt-3">
+            <span className="flex items-center gap-1">
+              <User className="w-4 h-4 text-info" /> نوشته‌ی{" "}
+              <strong className="text-foreground/90">مرضیه توانگر</strong>
+            </span>
+            <span className="flex items-center gap-1">
+              <Clock className="w-4 h-4 text-accent" />
+              {new Date(post.created_at).toLocaleDateString("fa-IR")}
+            </span>
+            {categories.length > 0 && (
+              <span className="flex items-center gap-1">
+                <Tag className="w-4 h-4 text-secondary" />
+                {categories.map((cat, i) => (
+                  <Link
+                    key={cat.slug}
+                    href={`/category/${cat.slug}`}
+                    className="text-primary hover:underline"
+                  >
+                    {cat.name}
+                    {i < categories.length - 1 && "،"}
+                  </Link>
+                ))}
               </span>
-
-              {categories.length > 0 && (
-                <span className="flex items-center">
-                  <Tag className="w-4 h-4 ml-1 text-secondary" />
-                  دسته:
-                  {categories.map((cat, index) => (
-                    <Link
-                      key={cat.slug}
-                      href={`/category/${cat.slug}`}
-                      className="mr-1 hover:underline text-primary"
-                    >
-                      {cat.name}
-                      {index < categories.length - 1 ? "،" : ""}
-                    </Link>
-                  ))}
-                </span>
-              )}
-            </div>
-
+            )}
             <PostViews postId={post.id} initialViews={post.view_count} />
           </div>
         </header>
 
-        <section className="post-content p-6 md:p-10 text-foreground/90 text-justify">
-          <div className="prose prose-lg dark:prose-invert prose-blue max-w-none rtl">
-            {parsedContent}
+        <section className="text-foreground/90 leading-relaxed text-justify !px-4 sm:!px-0 py-6">
+          <div
+            className="
+              prose dark:prose-invert prose-blue rtl
+              max-w-none prose-headings:font-bold
+              prose-h1:!text-2xl sm:prose-h1:!text-3xl
+              prose-h2:!text-xl sm:prose-h2:!text-2xl
+              prose-h3:!text-lg sm:prose-h3:!text-xl
+              prose-p:!my-3
+              sm:prose-ul:!pr-6 sm:prose-ol:!pr-6
+              prose-ul:!pr-0 prose-ol:!pr-0
+              prose-li:!mr-0 prose-li:!pr-0
+              prose-p:!leading-[1.9]
+            "
+          >
+            {content}
           </div>
         </section>
 
         {tags.length > 0 && (
-          <footer className="p-6 md:p-10 border-t border-muted dark:border-muted/30">
+          <footer className="border-t border-muted/30 dark:border-muted/40 !px-4 sm:!px-0 pt-4 pb-6">
             <div className="flex flex-wrap gap-2 items-center">
-              <span className="font-semibold text-foreground">برچسب‌ها:</span>
+              <span className="font-semibold">برچسب‌ها:</span>
               {tags.map((tag) => (
                 <Link
                   key={tag.slug}
                   href={`/tag/${tag.slug}`}
-                  className="text-xs bg-muted/70 hover:bg-muted dark:bg-muted/50 dark:hover:bg-muted transition-colors px-3 py-1 rounded-full text-primary font-medium"
+                  className="text-xs bg-muted/70 dark:bg-muted/40 hover:bg-muted transition-colors px-3 py-1 rounded-full text-primary font-medium"
                 >
                   #{tag.name}
                 </Link>
@@ -201,7 +201,12 @@ export default async function SinglePostPage({ params }) {
         )}
       </article>
 
-      <div className="mt-12">
+      <div className=" w-full sm:max-w-4xl sm:mx-auto">
+        <PostsSlider title="مطالب مرتبط" posts={relatedPosts} />
+      </div>
+
+      {/* بخش نظرات */}
+      <div className=" mb-10 w-full px-0 sm:max-w-4xl sm:mx-auto">
         <PostCommentsSection postId={post.id} postSlug={slug} />
       </div>
     </main>

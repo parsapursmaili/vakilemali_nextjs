@@ -1,15 +1,19 @@
+// app/media/[...src]/route.js (نسخه نهایی با ریسایز عرض ثابت و نام فایل ساده)
 import { NextResponse } from "next/server";
 import path from "path";
 import fs from "fs";
 import { promises as fsp } from "fs";
 import sharp from "sharp";
 
-// 📁 مسیرهای ثابت
+// 📁 تنظیمات ثابت
 const PUBLIC_DIR = path.join(process.cwd(), "public");
 const CACHE_DIR = path.join(PUBLIC_DIR, "image-cache");
-const UPLOAD_DIRS = ["uploads"]; // اگر فولدر دیگه‌ای داری، اضافه کن اینجا
+const UPLOAD_DIRS = ["uploads"];
+const FINAL_WIDTH = 720; // 💡 عرض ثابت نهایی
+const FINAL_QUALITY = 85;
+const CACHE_MAX_AGE = 31536000; 
 
-// 🔹 بررسی وجود فایل
+// 🔹 توابع کمکی
 async function fileExists(filePath) {
   try {
     await fsp.access(filePath, fs.constants.F_OK);
@@ -18,83 +22,96 @@ async function fileExists(filePath) {
     return false;
   }
 }
-
-// 🔹 ساخت پوشه در صورت نیاز
 async function ensureDir(dirPath) {
   await fsp.mkdir(dirPath, { recursive: true });
 }
-
-// 🔹 جلوگیری از مسیر ناامن
 function isSafeRelative(relPath) {
   return relPath && !relPath.includes("..") && !path.isAbsolute(relPath);
 }
 
 // 🧩 Route Handler اصلی
 export async function GET(req, context) {
-  const { params } = await context;
+  const { params } = context;
+  const { src } = params;
 
-  if (!params?.src || params.src.length === 0) {
-    return NextResponse.json({ error: "No path provided" }, { status: 400 });
+  if (!src || src.length === 0) {
+    return new NextResponse("No path provided", { status: 400 });
   }
 
-  const relPath = params.src.join("/");
-
+  let relPath = src.join("/");
   if (!isSafeRelative(relPath)) {
-    return NextResponse.json({ error: "Unsafe path" }, { status: 400 });
-  }
+    return new NextResponse("Unsafe path", { status: 400 });
+  } // 💡 نام فایل کش نهایی: حذف پارامترهای سایز و تبدیل پسوند به .webp
 
-  // خواندن پارامترهای width و quality
-  const { searchParams } = new URL(req.url);
-  const width = parseInt(searchParams.get("w")) || 1200;
-  const quality = parseInt(searchParams.get("q")) || 75;
+  const originalExtension = path.extname(relPath);
+  const pathWithoutExt = relPath.slice(0, -originalExtension.length); // 💡 نام کش فقط پسوند .webp را می‌گیرد
+  const cacheFileName = pathWithoutExt + `.webp`;
+  const cachePath = path.join(CACHE_DIR, cacheFileName);
+  const cacheDir = path.dirname(cachePath); // ✅ 1. جستجو در کش
 
-  const cachePath = path.join(CACHE_DIR, relPath.replace(/\.[^.]+$/, ".webp"));
-  const cacheDir = path.dirname(cachePath);
-
-  // ✅ اگر فایل cache شده وجود داره، همونو بده
   if (await fileExists(cachePath)) {
     const stream = fs.createReadStream(cachePath);
     return new NextResponse(stream, {
       status: 200,
       headers: {
         "Content-Type": "image/webp",
-        "Cache-Control": "public, max-age=31536000, immutable",
+        "Cache-Control": `public, max-age=${CACHE_MAX_AGE}, immutable`,
       },
     });
-  }
+  } // 🔍 2. پیدا کردن فایل اصلی در uploads
 
-  // 🔍 پیدا کردن فایل اصلی در uploads
   let originalPath = null;
+  const possibleExtensions = [
+    originalExtension,
+    ".webp",
+    ".jpg",
+    ".jpeg",
+    ".png",
+    ".JPG",
+    ".PNG",
+  ]; // 💡 حذف "uploads/" از ابتدای مسیر برای جلوگیری از تکرار در path.join
+
+  const pathWithoutExtAndUploads = pathWithoutExt.startsWith("uploads/")
+    ? pathWithoutExt.substring("uploads/".length)
+    : pathWithoutExt;
+
   for (const dir of UPLOAD_DIRS) {
-    const candidate = path.join(PUBLIC_DIR, dir, relPath);
-    if (await fileExists(candidate)) {
-      originalPath = candidate;
-      break;
+    for (const ext of possibleExtensions) {
+      const finalSearchPath = path.join(
+        PUBLIC_DIR,
+        dir,
+        pathWithoutExtAndUploads + ext
+      );
+
+      if (await fileExists(finalSearchPath)) {
+        originalPath = finalSearchPath;
+        break;
+      }
     }
+    if (originalPath) break;
   }
 
   if (!originalPath) {
-    console.error("❌ Original image not found:", relPath);
-    return NextResponse.json({ error: "Image not found" }, { status: 404 });
+    return new NextResponse("Image not found", { status: 404 });
   }
 
-  // ✅ پردازش تصویر با sharp
-  const buffer = await fsp.readFile(originalPath);
-  const optimizedBuffer = await sharp(buffer)
-    .resize({ width, withoutEnlargement: true })
-    .webp({ quality })
-    .toBuffer();
+  await ensureDir(cacheDir); // 💡 3. پردازش: فقط ریسایز به عرض 720 پیکسل (بدون کراپ) و تبدیل به WebP
 
-  // ذخیره در cache
-  await ensureDir(cacheDir);
-  await fsp.writeFile(cachePath, optimizedBuffer, { mode: 0o644 });
+  const optimizedBuffer = await sharp(originalPath)
+    .resize({
+      width: FINAL_WIDTH,
+      withoutEnlargement: true, // 💡 از بزرگنمایی تصاویر کوچک جلوگیری می‌کند
+    })
+    .webp({ quality: FINAL_QUALITY })
+    .toBuffer(); // ذخیره در cache
 
-  // ارسال خروجی
+  await fsp.writeFile(cachePath, optimizedBuffer, { mode: 0o644 }); // ارسال خروجی
+
   return new NextResponse(optimizedBuffer, {
     status: 200,
     headers: {
       "Content-Type": "image/webp",
-      "Cache-Control": "public, max-age=31536000, immutable",
+      "Cache-Control": `public, max-age=${CACHE_MAX_AGE}, immutable`,
     },
   });
 }

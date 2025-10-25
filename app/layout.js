@@ -1,9 +1,8 @@
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { vazir } from "./font.js"; // فرض بر این است که فونت وزیر به درستی اینجا import شده است
+import Header from "@/components/Header.jsx"; //  <-- ایمپورت کردن کامپوننت هدر
 
-// این‌ها می‌توانند حذف شوند یا اگر Geist را برای جایی نیاز دارید، بمانند،
-// اما کلاس‌هایشان نباید روی body اعمال شوند تا وزیر اولویت بگیرد.
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -23,14 +22,15 @@ export default function RootLayout({ children }) {
   return (
     <html
       lang="fa"
-      dir="rtl" // مطمئن شوید که متغیر فونت وزیر به تگ <html> اضافه شده باشد
+      dir="rtl"
       className={`${vazir.variable} ${geistSans.variable} ${geistMono.variable}`}
     >
-      <body
-        // کلاس‌های مربوط به فونت‌های Geist و Geist Mono را حذف کنید
-        className={`antialiased bg-background text-foreground`}
-      >
-        {children}
+      <body className={`antialiased bg-background text-foreground`}>
+        {/* ===== کامپوننت هدر اینجا اضافه شد ===== */}
+        <Header />
+
+        {/* محتوای اصلی صفحات در اینجا رندر می‌شود */}
+        <main className="container mx-auto px-4 py-8">{children}</main>
       </body>
     </html>
   );
