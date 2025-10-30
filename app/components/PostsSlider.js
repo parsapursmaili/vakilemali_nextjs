@@ -19,10 +19,10 @@ export default function PostsSlider({ posts, title }) {
   }
 
   return (
-    <section className="w-full py-10">
+    <section className="w-full py-3 ">
       <div className="w-full max-w-7xl mx-auto px-4">
         {title && (
-          <h2 className="text-3xl font-bold text-primary mb-8 text-center">
+          <h2 className="text-3xl font-bold text-primary mb-8 text-center ">
             {title}
           </h2>
         )}

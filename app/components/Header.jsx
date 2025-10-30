@@ -23,7 +23,7 @@ const Header = () => {
     <header className="sticky top-0 z-50 bg-background shadow-lg">
       {/* نوار بالا — اصلاح نهایی: با leading-none فاصله اضافی پاراگراف حذف و تراز کامل شد */}
       <div className="line-h bg-primary text-background/90 py-2 px-4 text-center border-b border-primary-light/30 flex items-center justify-center">
-        <p className=" font-light tracking-wide text-xs md:text-sm !m-3 !mb-2 leading-none">
+        <p className=" font-light tracking-wide text-xs md:text-sm !mb-[-2px]   leading-none">
           بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ • وَيْلٌ لِلْمُطَفِّفِينَ •
           الَّذِينَ إِذَا اكْتَالُوا عَلَى النَّاسِ يَسْتَوْفُونَ • وَإِذَا
           كَالُوهُمْ أَوْ وَزَنُوهُمْ يُخْسِرُونَ • أَلَا يَظُنُّ أُولَٰئِكَ
@@ -50,7 +50,6 @@ const Header = () => {
             </Link>
             <nav className="hidden lg:flex items-center gap-8">
               <NavLink href="/">صفحه اصلی</NavLink>
-              <NavLink href="/services">خدمات و تخصص‌ها</NavLink>
               <NavLink href="/articles">مقالات حقوقی</NavLink>
               <NavLink href="/contact">تماس با ما</NavLink>
             </nav>

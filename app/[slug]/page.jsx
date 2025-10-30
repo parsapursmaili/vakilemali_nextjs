@@ -4,6 +4,7 @@ import Image from "next/image";
 import { notFound } from "next/navigation";
 import { Clock, Tag, User, Eye } from "lucide-react";
 import parse from "html-react-parser";
+import ConsultationCTA from "@/components/ConsultationCTA";
 
 // بخش ایمپورت‌ها: توابع و کامپوننت‌های مورد نیاز
 import { getPostData, getRelatedPosts } from "./post";
@@ -45,7 +46,7 @@ function cleanImageUrlPath(src) {
 // تولید متادیتای صفحه برای سئو
 export async function generateMetadata({ params }) {
   const { slug } = params;
-  const { post } = await getPostData(slug);
+  const { post } = await getPostData(params.slug);
   if (!post) notFound();
 
   const excerpt =
@@ -66,7 +67,7 @@ export async function generateMetadata({ params }) {
 
 // کامپوننت اصلی صفحه پست تکی
 export default async function SinglePostPage({ params }) {
-  const { slug } = params;
+  const slug = params.slug;
 
   // بخش دریافت داده‌ها از سرور
   const { post, terms } = await getPostData(slug);
@@ -163,7 +164,7 @@ export default async function SinglePostPage({ params }) {
             <PostViews postId={post.id} initialViews={post.view_count} />
           </div>
         </header>
-
+        <ConsultationCTA />
         <section className="text-foreground/90 leading-relaxed text-justify !px-4 sm:!px-0 py-6">
           <div
             className="
@@ -206,7 +207,7 @@ export default async function SinglePostPage({ params }) {
       </div>
 
       {/* بخش نظرات */}
-      <div className=" mb-10 w-full px-0 sm:max-w-4xl sm:mx-auto">
+      <div className=" mb-10 w-full px-0 sm:max-w-4xl sm:mx-auto mt-10">
         <PostCommentsSection postId={post.id} postSlug={slug} />
       </div>
     </main>

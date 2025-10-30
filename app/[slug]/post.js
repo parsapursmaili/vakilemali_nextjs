@@ -5,10 +5,12 @@ import { revalidatePath } from "next/cache";
 // تابع اول: گرفتن اطلاعات پست تکی (با یک تغییر کوچک)
 export async function getPostData(slug) {
   try {
+    const slug2 = decodeURIComponent(slug);
+    console.log("slug: ", slug2);
     const [rows] = await db.query(
       // تغییر: کوئری برای slug به جای id بهتر است چون از URL می‌آید
-      "SELECT id, title, slug, content, excerpt, thumbnail, created_at, view_count FROM posts WHERE id = ? AND status = 'published'",
-      [slug]
+      "SELECT id, title, slug, content, excerpt, thumbnail, created_at, view_count FROM posts WHERE slug = ? AND status = 'published'",
+      [slug2]
     );
     if (!rows || rows.length === 0) {
       return { post: null, terms: [] };
