@@ -1,14 +1,16 @@
 "use client";
 
-import { useState, useTransition, useEffect } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   updatePost,
-  createPost, // تابع جدید برای ایجاد پست را ایمپورت می‌کنیم
+  createPost,
   updateCommentStatus,
   performBulkAction,
 } from "../actions";
 import TiptapEditor from "../components/TiptapEditor";
+// ایمپورت کتابخانه اعلان
+import { Toaster, toast } from "react-hot-toast";
 import {
   Save,
   Trash2,
@@ -24,22 +26,26 @@ import {
   BarChart2,
   FileText,
   Loader2,
-  Plus, // آیکون برای دکمه ایجاد
+  Plus,
+  Library, // آیکون جدید برای کتابخانه رسانه
 } from "lucide-react";
 
+// ایمپورت کامپوننت جدید کتابخانه رسانه
+import MediaLibrary from "../components/MediaLibrary";
+
 //================================================================================
-// تابع کمکی برای ساخت اسلاگ از رشته فارسی و انگلیسی
+// تابع کمکی برای ساخت اسلاگ (بدون تغییر)
 //================================================================================
 const generateSlug = (text) => {
   if (!text) return "";
-  const decodedText = text.substring(0, 30); // ۳۰ کاراکتر اول
+  const decodedText = text.substring(0, 30);
   return decodedText
     .toString()
     .toLowerCase()
     .trim()
-    .replace(/\s+/g, "-") // جایگزینی فاصله‌ها با "-"
-    .replace(/[^\w\u0600-\u06FF-]+/g, "") // حذف کاراکترهای غیرمجاز (به جز حروف فارسی و انگلیسی)
-    .replace(/--+/g, "-"); // حذف خط تیره های تکراری
+    .replace(/\s+/g, "-")
+    .replace(/[^\w\u0600-\u06FF-]+/g, "")
+    .replace(/--+/g, "-");
 };
 
 //================================================================================
@@ -79,7 +85,7 @@ function SidebarAccordion({
 }
 
 //================================================================================
-// کامپوننت اصلی UI کلاینت
+// کامپوننت اصلی UI کلاینت (اصلاح شده)
 //================================================================================
 export default function PostEditClientUI({
   initialPost,
@@ -88,20 +94,26 @@ export default function PostEditClientUI({
 }) {
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
-
   const isNewPost = !initialPost.id;
 
-  // استفاده از state برای مدیریت محتوای فرم به صورت کنترل شده
   const [postData, setPostData] = useState(initialPost);
   const [content, setContent] = useState(initialPost.content || "");
   const [categorySearch, setCategorySearch] = useState("");
 
-  // مدیریت تغییرات ورودی‌ها
+  // --- جدید: State برای کنترل باز و بسته بودن مودال کتابخانه رسانه ---
+  const [isMediaModalOpen, setIsMediaModalOpen] = useState(false);
+
+  const MAX_EXCERPT_LENGTH = 160;
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
+
+    if (name === "excerpt" && value.length > MAX_EXCERPT_LENGTH) {
+      return;
+    }
+
     setPostData((prev) => ({ ...prev, [name]: value }));
 
-    // منطق جدید برای اسلاگ: فقط در صورتی که پست جدید باشد، اسلاگ را آپدیت کن
     if (name === "title" && isNewPost) {
       setPostData((prev) => ({ ...prev, slug: generateSlug(value) }));
     }
@@ -109,20 +121,29 @@ export default function PostEditClientUI({
 
   const handleFormSubmit = (formData) => {
     formData.set("content", content);
+    formData.set("excerpt", postData.excerpt || "");
 
     startTransition(async () => {
-      const result = isNewPost
-        ? await createPost(formData) // تابع جدید برای ایجاد
-        : await updatePost(initialPost.id, formData); // تابع قبلی برای ویرایش
+      const promise = isNewPost
+        ? createPost(formData)
+        : updatePost(initialPost.id, formData);
 
-      alert(result.message);
-      if (result.success) {
-        if (isNewPost && result.postId) {
-          router.push(`/admin/posts/${result.postId}`); // ریدایرکت به صفحه ویرایش پست جدید
-        } else {
-          router.refresh();
-        }
-      }
+      toast.promise(promise, {
+        loading: "در حال ذخیره تغییرات...",
+        success: (result) => {
+          if (result.success) {
+            if (isNewPost && result.postId) {
+              router.push(`/admin/posts/${result.postId}`);
+            } else {
+              router.refresh();
+            }
+            return result.message;
+          } else {
+            throw new Error(result.message);
+          }
+        },
+        error: (err) => `خطا: ${err.message}`,
+      });
     });
   };
 
@@ -134,11 +155,19 @@ export default function PostEditClientUI({
       )
     ) {
       startTransition(async () => {
-        const result = await performBulkAction("delete", [initialPost.id]);
-        alert(result.message);
-        if (result.success) {
-          router.push("/admin/posts");
-        }
+        const promise = performBulkAction("delete", [initialPost.id]);
+        toast.promise(promise, {
+          loading: "در حال حذف پست...",
+          success: (result) => {
+            if (result.success) {
+              router.push("/admin/posts");
+              return result.message;
+            } else {
+              throw new Error(result.message);
+            }
+          },
+          error: (err) => `خطا: ${err.message}`,
+        });
       });
     }
   };
@@ -146,33 +175,59 @@ export default function PostEditClientUI({
   const handleCommentAction = (commentId, status) => {
     if (confirm(`آیا از تغییر وضعیت این دیدگاه مطمئن هستید؟`)) {
       startTransition(async () => {
-        const result = await updateCommentStatus(commentId, status);
-        alert(result.message);
-        if (result.success) {
-          router.refresh();
-        }
+        const promise = updateCommentStatus(commentId, status);
+        toast.promise(promise, {
+          loading: "در حال تغییر وضعیت دیدگاه...",
+          success: (result) => {
+            if (result.success) {
+              router.refresh();
+              return result.message;
+            } else {
+              throw new Error(result.message);
+            }
+          },
+          error: (err) => `خطا: ${err.message}`,
+        });
       });
     }
   };
 
-  // فیلتر کردن دسته‌بندی‌ها بر اساس جستجو
+  // --- جدید: تابع برای دریافت آدرس تصویر از کتابخانه و آپدیت state ---
+  const handleImageSelect = (imageUrl) => {
+    setPostData((prev) => ({ ...prev, thumbnail: imageUrl }));
+    setIsMediaModalOpen(false); // بستن مودال پس از انتخاب
+  };
+
   const filteredCategories = allCategories.filter((cat) =>
     cat.name.toLowerCase().includes(categorySearch.toLowerCase())
   );
 
   return (
     <form action={handleFormSubmit}>
-      <header className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4 sticky top-0 bg-gray-100/80 dark:bg-gray-900/80 p-4 z-10 backdrop-blur-sm -mx-4 md:-mx-8 border-b border-gray-200 dark:border-gray-700">
-        <h1 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white truncate">
-          {isNewPost ? (
-            "ایجاد پست جدید"
-          ) : (
-            <>
-              ویرایش: <span className="text-primary">{initialPost.title}</span>
-            </>
-          )}
-        </h1>
-        <div className="flex items-center gap-2 md:gap-4">
+      <Toaster position="bottom-left" reverseOrder={false} />
+
+      {/* --- جدید: رندر کردن مودال کتابخانه به صورت شرطی --- */}
+      {isMediaModalOpen && (
+        <MediaLibrary
+          onClose={() => setIsMediaModalOpen(false)}
+          onSelectImage={handleImageSelect}
+        />
+      )}
+
+      <header className="grid grid-cols-12 gap-6 md:gap-8 mb-8 sticky top-0 bg-gray-100/80 dark:bg-gray-900/80 p-4 z-10 backdrop-blur-sm -mx-4 md:-mx-8 border-b border-gray-200 dark:border-gray-700">
+        <div className="col-span-12 lg:col-span-8 flex items-center">
+          <h1 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white truncate">
+            {isNewPost ? (
+              "ایجاد پست جدید"
+            ) : (
+              <>
+                ویرایش:{" "}
+                <span className="text-primary">{initialPost.title}</span>
+              </>
+            )}
+          </h1>
+        </div>
+        <div className="col-span-12 lg:col-span-4 flex items-center justify-start lg:justify-end gap-2 md:gap-4">
           {!isNewPost && (
             <button
               type="button"
@@ -210,6 +265,7 @@ export default function PostEditClientUI({
       </header>
 
       <div className="grid grid-cols-12 gap-6 md:gap-8">
+        {/* ستون اصلی محتوا */}
         <div className="col-span-12 lg:col-span-8 space-y-6">
           <div>
             <label htmlFor="title" className="text-sm font-medium mb-1 block">
@@ -234,8 +290,28 @@ export default function PostEditClientUI({
               onContentChange={setContent}
             />
           </div>
+
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+            <div className="flex items-center gap-2 font-bold text-gray-800 dark:text-gray-200 mb-3">
+              <FileText className="w-5 h-5 text-gray-500" />
+              <span>خلاصه نوشته (برای سئو)</span>
+            </div>
+            <textarea
+              name="excerpt"
+              rows="4"
+              value={postData.excerpt || ""}
+              onChange={handleInputChange}
+              className="w-full text-sm"
+              placeholder="یک خلاصه کوتاه و جذاب برای نمایش در نتایج گوگل بنویسید."
+              maxLength={MAX_EXCERPT_LENGTH}
+            ></textarea>
+            <p className="text-xs text-left text-gray-500 dark:text-gray-400 mt-2">
+              {postData.excerpt?.length || 0} / {MAX_EXCERPT_LENGTH}
+            </p>
+          </div>
         </div>
 
+        {/* سایدبار */}
         <div className="col-span-12 lg:col-span-4 space-y-6">
           <SidebarAccordion
             title="تنظیمات انتشار"
@@ -276,7 +352,7 @@ export default function PostEditClientUI({
                   value={postData.slug}
                   onChange={handleInputChange}
                   className="!text-left !direction-ltr"
-                  dir="ltr" // این جهت باکس را چپ به راست می‌کند
+                  dir="ltr"
                   required
                 />
               </div>
@@ -338,6 +414,36 @@ export default function PostEditClientUI({
             </div>
           </SidebarAccordion>
 
+          {/* --- بخش تصویر شاخص کاملا اصلاح شده --- */}
+          <SidebarAccordion title="تصویر شاخص" icon={ImageIcon}>
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                name="thumbnail"
+                value={postData.thumbnail || ""}
+                onChange={handleInputChange}
+                placeholder="آدرس URL یا از کتابخانه انتخاب کنید"
+                className="!text-left !direction-ltr flex-grow"
+                dir="ltr"
+              />
+              <button
+                type="button"
+                onClick={() => setIsMediaModalOpen(true)}
+                title="باز کردن کتابخانه رسانه"
+                className="p-2.5 bg-gray-100 dark:bg-gray-700 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+              >
+                <Library className="w-5 h-5 text-gray-600 dark:text-gray-300" />
+              </button>
+            </div>
+            {postData.thumbnail && (
+              <img
+                src={postData.thumbnail}
+                alt="پیش‌نمایش تصویر شاخص"
+                className="mt-4 rounded-md w-full object-cover"
+              />
+            )}
+          </SidebarAccordion>
+
           <SidebarAccordion title="برچسب‌ها" icon={Tag}>
             <div className="max-h-60 overflow-y-auto space-y-2 p-2 border rounded-md bg-gray-50 dark:bg-gray-900">
               {allTags.map((tag) => (
@@ -359,35 +465,6 @@ export default function PostEditClientUI({
                 </div>
               ))}
             </div>
-          </SidebarAccordion>
-
-          <SidebarAccordion title="تصویر شاخص" icon={ImageIcon}>
-            <input
-              type="text"
-              name="thumbnail"
-              value={postData.thumbnail || ""}
-              onChange={handleInputChange}
-              placeholder="آدرس URL تصویر را وارد کنید"
-              className="!text-left !direction-ltr"
-              dir="ltr"
-            />
-            {postData.thumbnail && (
-              <img
-                src={postData.thumbnail}
-                alt="پیش‌نمایش تصویر شاخص"
-                className="mt-4 rounded-md w-full object-cover"
-              />
-            )}
-          </SidebarAccordion>
-
-          <SidebarAccordion title="خلاصه نوشته" icon={FileText}>
-            <textarea
-              name="excerpt"
-              rows="4"
-              value={postData.excerpt || ""}
-              onChange={handleInputChange}
-              className="w-full text-sm"
-            ></textarea>
           </SidebarAccordion>
 
           {!isNewPost && (

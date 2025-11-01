@@ -1,40 +1,34 @@
 import { NextResponse } from "next/server";
 import path from "path";
-import fs, { promises as fsp } from "fs";
+import fs from "fs";
+import { promises as fsp } from "fs";
 import sharp from "sharp";
 
-// === توابع و ثوابت کمکی تعریف شده در همین فایل ===
-
-// 1. ثوابت مورد نیاز
+// --- مسیرهای اصلی پروژه ---
 const PUBLIC_DIR = path.join(process.cwd(), "public");
 const CACHE_DIR_NAME = "image-cache";
-const UPLOAD_DIR_NAMES = ["uploads"]; // اگر پوشه‌های دیگری دارید، اینجا اضافه کنید
-
-// 2. توابع کمکی
+const UPLOAD_DIR_NAMES = ["uploads"]; // لیست پوشه‌های منبع تصاویر
 
 /**
- * بررسی می‌کند که آیا فایلی به صورت آسنکرون وجود دارد.
- * @param {string} filePath - مسیر کامل فایل.
- * @returns {Promise<boolean>}
+ * بررسی می‌کند که آیا یک مسیر نسبی امن است (برای جلوگیری از حملات Directory Traversal).
+ * @param {string} relPath - مسیر نسبی فایل.
+ * @returns {boolean}
  */
-async function fileExists(filePath) {
-  try {
-    await fs.promises.access(filePath, fs.constants.F_OK);
-    return true;
-  } catch {
-    return false;
-  }
+function isSafeRelativePath(relPath) {
+  if (!relPath) return false;
+  // جلوگیری از مسیرهای شامل '..' یا مسیرهای مطلق
+  return !relPath.includes("..") && !path.isAbsolute(relPath);
 }
 
 /**
- * اطمینان حاصل می‌کند که یک دایرکتوری وجود دارد و اگر نه، آن را می‌سازد.
+ * اطمینان حاصل می‌کند که دایرکتوری مورد نظر وجود دارد، در غیر این صورت آن را می‌سازد.
  * @param {string} dirPath - مسیر دایرکتوری.
- * @returns {Promise<void>}
  */
-async function ensureDir(dirPath) {
+async function ensureDirExists(dirPath) {
   try {
-    await fs.promises.mkdir(dirPath, { recursive: true });
+    await fsp.mkdir(dirPath, { recursive: true });
   } catch (error) {
+    // اگر دایرکتوری از قبل وجود داشته باشد، خطا را نادیده بگیر.
     if (error.code !== "EEXIST") {
       throw error;
     }
@@ -42,91 +36,95 @@ async function ensureDir(dirPath) {
 }
 
 /**
- * بررسی می‌کند که آیا یک مسیر نسبی امن است (از حملات directory traversal جلوگیری می‌کند).
- * @param {string} relPath - مسیر نسبی تصویر.
- * @returns {boolean}
+ * فایل اصلی تصویر را در پوشه‌های منبع جستجو می‌کند.
+ * @param {string} relPath - مسیر نسبی فایل.
+ * @returns {Promise<string|null>} مسیر کامل فایل در صورت یافتن، در غیر این صورت null.
  */
-function isSafeRelative(relPath) {
-  if (!relPath) return false;
-  // بررسی الگوهای رایج ناامنی مثل '..'
-  return !relPath.includes("..") && !path.isAbsolute(relPath);
+async function findOriginalImagePath(relPath) {
+  for (const uploadDir of UPLOAD_DIR_NAMES) {
+    const fullPath = path.join(PUBLIC_DIR, uploadDir, relPath);
+    try {
+      await fsp.access(fullPath);
+      return fullPath;
+    } catch {
+      // فایل در این پوشه وجود ندارد، ادامه جستجو
+      continue;
+    }
+  }
+  return null;
 }
 
-// === تابع اصلی Route Handler ===
-
-export async function GET(req, props) {
-  // 🛑 رفع ایراد اصلی Next.js 15: آبجکت props باید await شود.
-  const { params } = await props;
-
+export async function GET(req, { params }) {
   try {
-    if (!params?.src || params.src.length === 0) {
-      return NextResponse.json({ error: "No path provided" }, { status: 400 });
+    const relPath = params?.src?.join("/");
+
+    if (!relPath) {
+      return NextResponse.json(
+        { error: "Image path is required." },
+        { status: 400 }
+      );
     }
 
-    // مسیر بدون decode دوباره
-    const relPath = params.src.join("/");
-
-    // بررسی امنیت مسیر
-    if (!isSafeRelative(relPath)) {
-      return NextResponse.json({ error: "Unsafe path" }, { status: 400 });
+    if (!isSafeRelativePath(relPath)) {
+      return NextResponse.json(
+        { error: "Invalid or unsafe path." },
+        { status: 400 }
+      );
     }
 
-    // ... بقیه منطق کد شما بدون تغییر
-
-    // مسیر کش
     const cacheFullPath = path.join(PUBLIC_DIR, CACHE_DIR_NAME, relPath);
-    const cacheDirForFile = path.dirname(cacheFullPath);
+    const cacheDir = path.dirname(cacheFullPath);
 
-    if (await fileExists(cacheFullPath)) {
+    // ۱. ابتدا بررسی کن آیا نسخه کش شده تصویر وجود دارد یا خیر
+    try {
+      await fsp.access(cacheFullPath);
       const stream = fs.createReadStream(cacheFullPath);
       return new NextResponse(stream, {
         status: 200,
         headers: {
           "Content-Type": "image/webp",
-          "Cache-Control": "public, max-age=31536000, immutable",
+          "Cache-Control": "public, max-age=31536000, immutable", // هدر کش برای مرورگر
         },
       });
+    } catch {
+      // فایل در کش وجود ندارد، ادامه بده تا ساخته شود.
     }
 
-    // در پوشه uploads دنبال فایل بگرد
-    let foundOriginal = null;
-    for (const up of UPLOAD_DIR_NAMES) {
-      const candidate = path.join(PUBLIC_DIR, up, relPath);
-      if (await fileExists(candidate)) {
-        foundOriginal = candidate;
-        break;
-      }
+    // ۲. فایل اصلی را پیدا کن
+    const originalPath = await findOriginalImagePath(relPath);
+
+    if (!originalPath) {
+      return NextResponse.json({ error: "Image not found." }, { status: 404 });
     }
 
-    if (!foundOriginal) {
-      console.error("❌ File not found:", relPath);
-      return NextResponse.json(
-        { error: "Original not found" },
-        { status: 404 }
-      );
+    // اطمینان از وجود پوشه کش
+    await ensureDirExists(cacheDir);
+
+    const isOriginalWebP = path.extname(originalPath).toLowerCase() === ".webp";
+
+    // ۳. پردازش و کش کردن تصویر
+    if (isOriginalWebP) {
+      // اگر فرمت اصلی webp است، فقط آن را در پوشه کش کپی کن
+      await fsp.copyFile(originalPath, cacheFullPath);
+    } else {
+      // در غیر این صورت، تصویر را به webp با کیفیت ۷۵ تبدیل کن
+      const imageBuffer = await fsp.readFile(originalPath);
+      await sharp(imageBuffer).webp({ quality: 75 }).toFile(cacheFullPath);
     }
 
-    await ensureDir(cacheDirForFile);
-    const imageBuffer = await fsp.readFile(foundOriginal);
-
-    const convertedBuffer = await sharp(imageBuffer)
-      .webp({ quality: 75 })
-      .toBuffer();
-
-    await fsp.writeFile(cacheFullPath, convertedBuffer, { mode: 0o644 });
-
-    return new NextResponse(convertedBuffer, {
-      status: 200,
+    // ۴. فایل کش شده جدید را برای کاربر ارسال کن
+    const newCacheStream = fs.createReadStream(cacheFullPath);
+    return new NextResponse(newCacheStream, {
+      status: 200, // ارسال با موفقیت
       headers: {
         "Content-Type": "image/webp",
-        "Content-Length": String(convertedBuffer.length),
         "Cache-Control": "public, max-age=31536000, immutable",
       },
     });
   } catch (err) {
-    console.error("image-api-error:", err);
+    console.error("Image API Error:", err);
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: "An internal server error occurred." },
       { status: 500 }
     );
   }

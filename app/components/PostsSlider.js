@@ -26,12 +26,6 @@ export default function PostsSlider({ posts, title }) {
             {title}
           </h2>
         )}
-        {/* 
-          شروع تغییرات اصلی:
-          - به جای 'grid'، از 'flex' و 'flex-wrap' استفاده می‌کنیم.
-          - 'justify-center' در Flexbox دقیقاً همان کاری را می‌کند که شما می‌خواهید:
-            هر ردیف از آیتم‌ها (چه کامل باشد چه ناقص) را در مرکز کانتینر قرار می‌دهد.
-        */}
         <div
           className="
             flex flex-wrap justify-center 
