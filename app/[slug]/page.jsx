@@ -117,6 +117,7 @@ export default async function SinglePostPage({ params }) {
           sm:p-8 p-0
         "
       >
+        {console.log("src:", post.thumbnail)}
         {post.thumbnail && (
           <div className="w-full p-2 sm:p-3">
             <div className="overflow-hidden rounded-2xl border border-muted/30 shadow-sm sm:shadow-md hover:shadow-lg transition-shadow duration-300">

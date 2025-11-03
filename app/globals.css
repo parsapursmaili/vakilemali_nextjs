@@ -1,11 +1,31 @@
+/*
+================================================================================
+فایل استایل‌های سراسری (Global Stylesheet) - نسخه نهایی
+================================================================================
+این فایل شامل تمام استایل‌های پایه، متغیرهای تم، استایل‌های سفارشی
+و اصلاحیه‌های لازم برای ویرایشگر Tiptap است.
+ساختار برای خوانایی بهتر، سازماندهی شده است.
+================================================================================
+*/
+
+/*
+--------------------------------------------------------------------------------
+بخش ۱: ایمپورت‌های پایه Tailwind
+--------------------------------------------------------------------------------
+*/
 @config "../tailwind.config.js";
 @import "tailwindcss";
 
-/* Tokens Light */
+/*
+--------------------------------------------------------------------------------
+بخش ۲: متغیرهای تم (CSS Custom Properties)
+--------------------------------------------------------------------------------
+*/
+/* توکن‌های تم روشن (پیش‌فرض) */
 :root {
+  /* Colors */
   --background: #f9fafb;
   --foreground: #111827;
-  /* ... (سایر متغیرها بدون تغییر باقی می‌مانند) ... */
   --primary: #1a2b4c;
   --primary-light: #3f5fa7;
   --secondary: #14532d;
@@ -13,88 +33,49 @@
   --muted: #e5e7eb;
   --destructive: #dc2626;
 
+  /* Error States */
   --error: #e53935;
   --error-background: #ffebee;
   --error-border: #ef9a9a;
 
+  /* Forms */
   --input-background: #ffffff;
   --input-border: #d1d5db;
   --input-focus-ring: var(--primary);
   --input-placeholder: #6b7280;
 
+  /* Selection & Highlight */
   --selection-background: var(--primary);
   --selection-foreground: var(--background);
   --highlight-background: #fff4cc;
   --highlight-foreground: #1c1c20;
 
+  /* Typography */
   --font-sans: var(--font-vazir), -apple-system, BlinkMacSystemFont, "Segoe UI",
     Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
-
   --font-size-base: 1rem;
   --line-height-base: 1.7;
+  --line-height-headings: 1.3;
 
+  /* Heading Font Sizes (برای استفاده در استایل‌های پایه) */
   --font-size-h1: 2.25rem;
   --font-size-h2: 1.875rem;
   --font-size-h3: 1.5rem;
   --font-size-h4: 1.25rem;
   --font-size-h5: 1.125rem;
   --font-size-h6: 1rem;
-  --line-height-headings: 1.3;
 
+  /* Sizing & Radius */
   --radius-sm: 0.25rem;
   --radius-md: 0.5rem;
   --radius-lg: 0.75rem;
   --radius-full: 9999px;
 }
 
-@media (max-width: 1024px) {
-  h1 {
-    font-size: 1.875rem !important; /* ~30px */
-  }
-  h2 {
-    font-size: 1.5rem !important; /* ~24px */
-  }
-  h3 {
-    font-size: 1.25rem !important; /* ~20px */
-  }
-  h4 {
-    font-size: 1.125rem !important; /* ~18px */
-  }
-  h5 {
-    font-size: 1rem !important; /* ~16px */
-  }
-  h6 {
-    font-size: 0.9375rem !important; /* ~15px */
-  }
-}
-
-/* موبایل (تا 640px) */
-@media (max-width: 640px) {
-  h1 {
-    font-size: 1.5rem !important; /* ~24px */
-  }
-  h2 {
-    font-size: 1.25rem !important; /* ~20px */
-  }
-  h3 {
-    font-size: 1.125rem !important; /* ~18px */
-  }
-  h4 {
-    font-size: 1rem !important; /* ~16px */
-  }
-  h5 {
-    font-size: 0.9375rem !important; /* ~15px */
-  }
-  h6 {
-    font-size: 0.875rem !important; /* ~14px */
-  }
-}
-
-/* Tokens Dark */
+/* توکن‌های تم تاریک */
 .dark {
   --background: #0a0a0a;
   --foreground: #f5f5f5;
-  /* ... (سایر متغیرهای دارک بدون تغییر باقی می‌مانند) ... */
   --primary: #2c3e75;
   --primary-light: #5472b8;
   --secondary: #166534;
@@ -104,14 +85,17 @@
 
   --input-background: var(--background);
   --input-border: #33334d;
-  --input-focus-ring: var(--primary);
   --input-placeholder: #9ca3af;
 
   --highlight-background: #4a3f1a;
   --highlight-foreground: #fff;
 }
 
-/* Base */
+/*
+--------------------------------------------------------------------------------
+بخش ۳: استایل‌های پایه و سراسری (Base & Global Styles)
+--------------------------------------------------------------------------------
+*/
 body {
   background: var(--background);
   color: var(--foreground);
@@ -128,7 +112,18 @@ body {
   color: var(--selection-foreground);
 }
 
-/* ... (بخش‌های Headings, Links, Buttons, Cards, Forms, Tables بدون تغییر) ... */
+/* استایل‌های پایه برای لینک‌ها */
+a {
+  color: var(--primary);
+  text-decoration: none;
+  transition: color 0.3s ease, transform 0.2s ease;
+}
+a:hover {
+  color: var(--accent);
+  transform: translateX(-2px);
+}
+
+/* استایل‌های پایه برای تیترها (سراسری) */
 h1,
 h2,
 h3,
@@ -160,23 +155,77 @@ h5 {
 h6 {
   font-size: var(--font-size-h6);
 }
-.line-h p {
-  line-height: 2 !important;
-}
-@media (max-width: 640px) {
-  .line-h p {
-    line-height: 2.3 !important;
+
+/* استایل‌های واکنش‌گرای دستی برای تیترها (حفظ شده طبق درخواست) */
+@media (max-width: 1024px) {
+  h1 {
+    font-size: 1.875rem !important;
+  }
+  h2 {
+    font-size: 1.5rem !important;
+  }
+  h3 {
+    font-size: 1.25rem !important;
+  }
+  h4 {
+    font-size: 1.125rem !important;
+  }
+  h5 {
+    font-size: 1rem !important;
+  }
+  h6 {
+    font-size: 0.9375rem !important;
   }
 }
-a {
-  color: var(--primary);
-  text-decoration: none;
-  transition: color 0.3s ease, transform 0.2s ease;
+@media (max-width: 640px) {
+  h1 {
+    font-size: 1.5rem !important;
+  }
+  h2 {
+    font-size: 1.25rem !important;
+  }
+  h3 {
+    font-size: 1.125rem !important;
+  }
+  h4 {
+    font-size: 1rem !important;
+  }
+  h5 {
+    font-size: 0.9375rem !important;
+  }
+  h6 {
+    font-size: 0.875rem !important;
+  }
 }
-a:hover {
-  color: var(--accent);
-  transform: translateX(-2px);
+
+/* استایل‌های پایه برای لیست‌ها (سراسری) */
+ul,
+ol {
+  margin: 1rem 0 1.25rem 0;
+  padding-right: 1.5rem;
+  list-style-position: inside;
 }
+ul {
+  list-style-type: disc;
+}
+ol {
+  list-style-type: decimal;
+}
+li {
+  margin: 0.4rem 0;
+}
+
+/* استایل‌های پایه برای پاراگراف و نقل‌قول (سراسری) */
+p,
+blockquote {
+  margin: 0 0 1rem;
+}
+
+/*
+--------------------------------------------------------------------------------
+بخش ۴: استایل‌های کامپوننت-مانند (Buttons, Cards, etc.)
+--------------------------------------------------------------------------------
+*/
 .button-primary,
 .button-secondary {
   color: var(--background);
@@ -207,6 +256,12 @@ a:hover {
   padding: 1rem;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
+
+/*
+--------------------------------------------------------------------------------
+بخش ۵: استایل‌های عناصر فرم و جداول (سراسری)
+--------------------------------------------------------------------------------
+*/
 input,
 textarea,
 select {
@@ -228,6 +283,8 @@ select:focus {
 ::placeholder {
   color: var(--input-placeholder);
 }
+
+/* استایل جدول عمومی (برای جداول خارج از ویرایشگر) */
 table {
   width: 100%;
   border-collapse: collapse;
@@ -246,52 +303,44 @@ tbody tr:nth-child(even) {
   background: var(--muted);
 }
 
-/* Lists */
-ul,
-ol {
-  margin: 1rem 0 1.25rem 0;
-  padding-right: 1.5rem; /* برای زبان راست‌به‌چپ */
-  list-style-position: inside;
+/*
+--------------------------------------------------------------------------------
+بخش ۶: کلاس‌های کمکی (Utility Classes)
+--------------------------------------------------------------------------------
+*/
+.line-h p {
+  line-height: 2 !important;
 }
-ul {
-  list-style-type: disc;
-}
-ol {
-  list-style-type: decimal;
-}
-li {
-  margin: 0.4rem 0;
+@media (max-width: 640px) {
+  .line-h p {
+    line-height: 2.3 !important;
+  }
 }
 
-/* Spacing Fix */
-p,
-blockquote {
-  margin: 0 0 1rem;
-}
 .content-block > *:last-child {
   margin-bottom: 0;
 }
 
-/* ---------------------------------------------- */
-/* جدید: کاهش فاصله در محتوای مقاله (Tailwind Prose) */
-/* ---------------------------------------------- */
+/*
+--------------------------------------------------------------------------------
+بخش ۷: سفارشی‌سازی Tailwind Typography (کلاس .prose)
+--------------------------------------------------------------------------------
+*/
 .prose p,
 .prose ul,
 .prose ol,
 .prose blockquote,
 .prose pre,
 .prose table {
-  margin-bottom: 0.85em; /* کاهش فاصله پایین پاراگراف و سایر عناصر */
+  margin-bottom: 0.85em;
 }
-
 .prose li {
   margin-top: 0.2em;
-  margin-bottom: 0.2em; /* کاهش فاصله آیتم‌های لیست */
+  margin-bottom: 0.2em;
 }
-
 .prose h2 {
-  margin-top: 1.6em; /* کاهش فاصله بالای تیتر 2 */
-  margin-bottom: 0.7em; /* کاهش فاصله پایین تیتر 2 */
+  margin-top: 1.6em;
+  margin-bottom: 0.7em;
 }
 .prose h3 {
   margin-top: 1.5em;
@@ -301,8 +350,49 @@ blockquote {
   margin-top: 1.4em;
   margin-bottom: 0.5em;
 }
-
-/* حذف فاصله بالای اولین عنصر در مقاله */
 .prose > :first-child {
   margin-top: 0;
+}
+
+/* استایل‌های پایه برای جدول‌ها در ویرایشگر */
+.ProseMirror .tableWrapper {
+  overflow-x: auto;
+}
+.ProseMirror table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1rem 0;
+  table-layout: fixed;
+}
+.ProseMirror th,
+.ProseMirror td {
+  border: 1px solid var(--input-border);
+  padding: 8px 12px;
+  min-width: 1em;
+  vertical-align: top;
+  position: relative;
+}
+.ProseMirror th {
+  font-weight: bold;
+  background-color: var(--muted);
+  text-align: inherit;
+}
+.ProseMirror .selectedCell:after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(63, 95, 167, 0.1);
+  pointer-events: none;
+}
+.ProseMirror .column-resize-handle {
+  position: absolute;
+  right: -2px;
+  top: 0;
+  bottom: -2px;
+  width: 4px;
+  background-color: rgba(63, 95, 167, 0.5);
+  pointer-events: none;
+}
+.ProseMirror.resize-cursor {
+  cursor: col-resize;
 }

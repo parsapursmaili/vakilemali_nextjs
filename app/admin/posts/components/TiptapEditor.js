@@ -1,8 +1,20 @@
+// فایل: vakilemali/app/admin/posts/components/TiptapEditor.js
+
 "use client";
 
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
-import { useState, useEffect } from "react"; // <-- ایمپورت کردن هوک‌های لازم
+import ListItem from "@tiptap/extension-list-item";
+
+// ==============================================================================
+// ✨✨✨ اصلاح خطای بیلد: استفاده از Named Imports برای افزونه‌های جدول ✨✨✨
+// ==============================================================================
+import { Table } from "@tiptap/extension-table";
+import { TableCell } from "@tiptap/extension-table-cell";
+import { TableHeader } from "@tiptap/extension-table-header";
+import { TableRow } from "@tiptap/extension-table-row";
+
+import { useState, useEffect } from "react";
 import {
   Bold,
   Italic,
@@ -15,13 +27,27 @@ import {
   ListOrdered,
   Quote,
   Minus,
+  Code2,
+  Eye,
+  Table as TableIcon,
+  Trash2,
+  FlipVertical,
+  Plus,
 } from "lucide-react";
 
 //================================================================================
-// کامپوننت نوار ابزار (MenuBar) - بدون تغییر
+// بازنویسی قانون اصلی Tiptap برای حل مشکل ساختار بولت‌ها
 //================================================================================
-const MenuBar = ({ editor }) => {
+const CustomListItem = ListItem.extend({
+  content: "inline*",
+});
+
+//================================================================================
+// کامپوننت نوار ابزار (MenuBar) - کامل و بدون تغییر
+//================================================================================
+const MenuBar = ({ editor, currentView, onViewSwitch }) => {
   if (!editor) return null;
+
   const menuItems = [
     {
       action: () => editor.chain().focus().toggleBold().run(),
@@ -91,42 +117,121 @@ const MenuBar = ({ editor }) => {
       icon: Minus,
       name: "horizontalRule",
     },
+    { type: "divider" },
+    {
+      action: () =>
+        editor
+          .chain()
+          .focus()
+          .insertTable({ rows: 3, cols: 3, withHeaderRow: true })
+          .run(),
+      icon: TableIcon,
+      name: "insertTable",
+      title: "درج جدول",
+    },
+    {
+      action: () => editor.chain().focus().addColumnAfter().run(),
+      icon: Plus,
+      name: "addColumn",
+      title: "افزودن ستون",
+    },
+    {
+      action: () => editor.chain().focus().addRowAfter().run(),
+      icon: Plus,
+      name: "addRow",
+      title: "افزودن سطر",
+    },
+    {
+      action: () => editor.chain().focus().deleteColumn().run(),
+      icon: Trash2,
+      name: "deleteColumn",
+      title: "حذف ستون",
+    },
+    {
+      action: () => editor.chain().focus().deleteRow().run(),
+      icon: Trash2,
+      name: "deleteRow",
+      title: "حذف سطر",
+    },
+    {
+      action: () => editor.chain().focus().deleteTable().run(),
+      icon: Trash2,
+      name: "deleteTable",
+      title: "حذف کل جدول",
+    },
+    {
+      action: () => editor.chain().focus().toggleHeaderRow().run(),
+      icon: FlipVertical,
+      name: "toggleHeaderRow",
+      title: "فعال/غیرفعال کردن سربرگ",
+    },
   ];
 
   return (
-    <div className="p-2 border-b border-gray-200 dark:border-gray-700 flex flex-wrap gap-1">
-      {menuItems.map((item, index) =>
-        item.type === "divider" ? (
-          <div
-            key={index}
-            className="w-[1px] bg-gray-200 dark:bg-gray-600 mx-1"
-          ></div>
-        ) : (
-          <button
-            key={index}
-            type="button"
-            onClick={item.action}
-            title={item.name}
-            className={`p-2 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 ${
-              item.active
-                ? "bg-gray-200 dark:bg-gray-600 text-primary"
-                : "text-gray-600 dark:text-gray-300"
-            }`}
-          >
-            <item.icon className="w-4 h-4" />
-          </button>
-        )
-      )}
+    <div className="p-2 border-b border-gray-200 dark:border-gray-700 flex flex-wrap justify-between items-center gap-2">
+      <div className="flex flex-wrap gap-1">
+        {currentView === "wysiwyg" &&
+          menuItems.map((item, index) =>
+            item.type === "divider" ? (
+              <div
+                key={index}
+                className="w-[1px] bg-gray-200 dark:bg-gray-600 mx-1 self-stretch"
+              ></div>
+            ) : (
+              <button
+                key={index}
+                type="button"
+                onClick={item.action}
+                title={item.title || item.name}
+                className={`p-2 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 ${
+                  item.active
+                    ? "bg-gray-200 dark:bg-gray-600 text-primary"
+                    : "text-gray-600 dark:text-gray-300"
+                }`}
+              >
+                <item.icon className="w-4 h-4" />
+              </button>
+            )
+          )}
+      </div>
+      <div className="flex items-center gap-1">
+        <div className="w-[1px] bg-gray-200 dark:bg-gray-600 mx-1 h-6"></div>
+        <button
+          type="button"
+          onClick={() => onViewSwitch("wysiwyg")}
+          title="ویرایشگر بصری"
+          className={`p-2 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 ${
+            currentView === "wysiwyg"
+              ? "bg-gray-200 dark:bg-gray-600 text-primary"
+              : "text-gray-600 dark:text-gray-300"
+          }`}
+        >
+          <Eye className="w-4 h-4" />
+        </button>
+        <button
+          type="button"
+          onClick={() => onViewSwitch("html")}
+          title="ویرایشگر کد HTML"
+          className={`p-2 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 ${
+            currentView === "html"
+              ? "bg-gray-200 dark:bg-gray-600 text-primary"
+              : "text-gray-600 dark:text-gray-300"
+          }`}
+        >
+          <Code2 className="w-4 h-4" />
+        </button>
+      </div>
     </div>
   );
 };
 
 //================================================================================
-// کامپوننت اصلی ویرایشگر - **با اصلاحات کلیدی**
+// کامپوننت اصلی ویرایشگر - **نسخه نهایی و اصلاح شده**
 //================================================================================
 export default function TiptapEditor({ initialContent, onContentChange }) {
-  // **تغییر ۱:** یک state برای اطمینان از اجرای کد در کلاینت اضافه می‌کنیم
   const [isClient, setIsClient] = useState(false);
+  const [viewMode, setViewMode] = useState("wysiwyg");
+  const [htmlContent, setHtmlContent] = useState(initialContent || "");
 
   useEffect(() => {
     setIsClient(true);
@@ -135,8 +240,15 @@ export default function TiptapEditor({ initialContent, onContentChange }) {
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
-        heading: { levels: [2, 3, 4] },
+        listItem: false,
       }),
+      CustomListItem,
+
+      // سایر افزونه‌ها
+      Table.configure({ resizable: true }),
+      TableRow,
+      TableHeader,
+      TableCell,
     ],
     content: initialContent || "",
     editorProps: {
@@ -146,14 +258,32 @@ export default function TiptapEditor({ initialContent, onContentChange }) {
       },
     },
     onUpdate: ({ editor }) => {
-      onContentChange(editor.getHTML());
+      const newHtml = editor.getHTML();
+      onContentChange(newHtml);
+      setHtmlContent(newHtml);
     },
-    // **تغییر ۲:** این گزینه حیاتی را برای جلوگیری از رندر در سرور اضافه می‌کنیم
     immediatelyRender: false,
   });
 
-  // **تغییر ۳:** تا زمانی که کامپوننت در کلاینت mount نشده، یک placeholder نمایش می‌دهیم
-  if (!isClient) {
+  const handleHtmlChange = (e) => {
+    const newHtml = e.target.value;
+    setHtmlContent(newHtml);
+    onContentChange(newHtml);
+  };
+
+  const handleViewSwitch = (newView) => {
+    if (viewMode === newView) return;
+    if (newView === "wysiwyg") {
+      editor?.commands.setContent(htmlContent, {
+        emitUpdate: false,
+      });
+    } else {
+      setHtmlContent(editor?.getHTML() || "");
+    }
+    setViewMode(newView);
+  };
+
+  if (!isClient || !editor) {
     return (
       <div className="border rounded-lg border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 min-h-[540px] p-4 animate-pulse">
         <div className="h-10 bg-gray-200 dark:bg-gray-700 rounded-md w-full"></div>
@@ -166,11 +296,24 @@ export default function TiptapEditor({ initialContent, onContentChange }) {
     );
   }
 
-  // پس از mount شدن در کلاینت، ویرایشگر واقعی را نمایش می‌دهیم
   return (
     <div className="border rounded-lg bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-      <MenuBar editor={editor} />
-      <EditorContent editor={editor} />
+      <MenuBar
+        editor={editor}
+        currentView={viewMode}
+        onViewSwitch={handleViewSwitch}
+      />
+      {viewMode === "wysiwyg" ? (
+        <EditorContent editor={editor} />
+      ) : (
+        <textarea
+          value={htmlContent}
+          onChange={handleHtmlChange}
+          className="w-full min-h-[500px] p-4 bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200 font-mono text-sm focus:outline-none resize-y"
+          placeholder="کد HTML خود را اینجا وارد کنید..."
+          dir="ltr"
+        />
+      )}
     </div>
   );
 }

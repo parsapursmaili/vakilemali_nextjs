@@ -5,16 +5,11 @@ import Image from "next/image";
 import { X, UploadCloud, Loader2, Library, CheckCircle } from "lucide-react";
 import { toast } from "react-hot-toast";
 
-// --- Loader سفارشی برای تطبیق با API بهینه‌ساز تصویر ---
-// این تابع آدرس کامل (مثلا /uploads/2025/09/photo.jpg) را گرفته
-// و آن را به فرمت مورد انتظار API شما (/api/image/2025/09/photo.jpg) تبدیل می‌کند.
 const imageApiLoader = ({ src }) => {
-  // حذف بخش '/uploads/' از ابتدای آدرس تا مسیر نسبی به دست آید
+  // این لودر بدون تغییر باقی می‌ماند و کار خود را به درستی انجام می‌دهد
   const relativePath = src.startsWith("/uploads/")
     ? src.substring("/uploads/".length)
     : src;
-
-  // برگرداندن آدرس کامل API به همراه مسیر نسبی
   return `/api/image/${relativePath}`;
 };
 
@@ -45,7 +40,6 @@ export default function MediaLibrary({ onClose, onSelectImage }) {
   };
 
   useEffect(() => {
-    // در اولین رندر، لیست رسانه‌ها را فراخوانی کن
     fetchMedia();
   }, []);
 
@@ -75,11 +69,16 @@ export default function MediaLibrary({ onClose, onSelectImage }) {
         success: async (res) => {
           const result = await res.json();
           if (result.success) {
-            onSelectImage(result.url); // تصویر آپلود شده را انتخاب کن
-            onClose(); // مودال را ببند
+            // [اصلاح کلیدی شماره ۱]
+            // قبل از ارسال آدرس به بیرون، پیشوند '/uploads/' را از آن حذف می‌کنیم.
+            // result.url از API به صورت '/uploads/2025/11/image.webp' می‌آید.
+            const relativeUrl = result.url.startsWith("/uploads/")
+              ? result.url.substring("/uploads/".length)
+              : result.url;
+            onSelectImage(relativeUrl); // آدرس نسبی ارسال می‌شود.
+            onClose();
             return "آپلود با موفقیت انجام شد!";
           } else {
-            // اگر API خطایی برگرداند، آن را نمایش بده
             throw new Error(result.error || "خطای ناشناخته در آپلود.");
           }
         },
@@ -147,11 +146,19 @@ export default function MediaLibrary({ onClose, onSelectImage }) {
                       <div
                         key={file.url}
                         className="aspect-square border rounded-md overflow-hidden cursor-pointer group relative"
-                        onClick={() => onSelectImage(file.url)}
+                        // [اصلاح کلیدی شماره ۲]
+                        // در اینجا هم قبل از ارسال آدرس، پیشوند '/uploads/' را حذف می‌کنیم.
+                        // file.url از API به صورت '/uploads/2025/11/image.webp' است.
+                        onClick={() => {
+                          const relativeUrl = file.url.startsWith("/uploads/")
+                            ? file.url.substring("/uploads/".length)
+                            : file.url;
+                          onSelectImage(relativeUrl); // آدرس نسبی ارسال می‌شود.
+                        }}
                       >
                         <Image
                           loader={imageApiLoader}
-                          src={file.url}
+                          src={file.url} // برای نمایش تصویر، همچنان از آدرس کامل استفاده می‌کنیم.
                           alt={file.name}
                           fill
                           sizes="(max-width: 768px) 33vw, 20vw"

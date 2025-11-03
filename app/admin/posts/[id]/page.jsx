@@ -30,6 +30,7 @@ export default async function EditPostPage({ params }) {
       excerpt: "",
       thumbnail: "",
       status: "draft",
+      approved: 0,
       view_count: 0,
       updated_at: new Date().toISOString(),
       categoryIds: [],

@@ -27,7 +27,9 @@ import {
   FileText,
   Loader2,
   Plus,
-  Library, // آیکون جدید برای کتابخانه رسانه
+  Library,
+  Copy, // آیکون جدید برای کپی
+  ExternalLink, // آیکون جدید برای لینک خارجی
 } from "lucide-react";
 
 // ایمپورت کامپوننت جدید کتابخانه رسانه
@@ -85,7 +87,7 @@ function SidebarAccordion({
 }
 
 //================================================================================
-// کامپوننت اصلی UI کلاینت (اصلاح شده)
+// کامپوننت اصلی UI کلاینت (نسخه نهایی و اصلاح شده)
 //================================================================================
 export default function PostEditClientUI({
   initialPost,
@@ -99,29 +101,36 @@ export default function PostEditClientUI({
   const [postData, setPostData] = useState(initialPost);
   const [content, setContent] = useState(initialPost.content || "");
   const [categorySearch, setCategorySearch] = useState("");
-
-  // --- جدید: State برای کنترل باز و بسته بودن مودال کتابخانه رسانه ---
   const [isMediaModalOpen, setIsMediaModalOpen] = useState(false);
+  const [isCopied, setIsCopied] = useState(false);
 
   const MAX_EXCERPT_LENGTH = 160;
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-
-    if (name === "excerpt" && value.length > MAX_EXCERPT_LENGTH) {
-      return;
-    }
-
+    if (name === "excerpt" && value.length > MAX_EXCERPT_LENGTH) return;
     setPostData((prev) => ({ ...prev, [name]: value }));
-
     if (name === "title" && isNewPost) {
       setPostData((prev) => ({ ...prev, slug: generateSlug(value) }));
     }
   };
 
+  const handleSwitchChange = (e) => {
+    const { name, checked } = e.target;
+    setPostData((prev) => ({ ...prev, [name]: checked ? 1 : 0 }));
+  };
+
   const handleFormSubmit = (formData) => {
     formData.set("content", content);
     formData.set("excerpt", postData.excerpt || "");
+    formData.set("approved", postData.approved ? "1" : "0");
+
+    // =================================================================
+    // <<< ✨✨✨ راه حل کلیدی مشکل ✨✨✨ >>>
+    // این خط تضمین می‌کند که مقدار تصویر شاخص همیشه از استیت خوانده و ارسال شود،
+    // حتی اگر آکاردئون آن بسته باشد و اینپوت مربوطه در DOM وجود نداشته باشد.
+    formData.set("thumbnail", postData.thumbnail || "");
+    // =================================================================
 
     startTransition(async () => {
       const promise = isNewPost
@@ -192,10 +201,23 @@ export default function PostEditClientUI({
     }
   };
 
-  // --- جدید: تابع برای دریافت آدرس تصویر از کتابخانه و آپدیت state ---
+  const handleCopyLink = () => {
+    const link = `http://localhost:3000/?p=${initialPost.id}`;
+    navigator.clipboard.writeText(link).then(
+      () => {
+        setIsCopied(true);
+        setTimeout(() => setIsCopied(false), 2500);
+      },
+      (err) => {
+        toast.error("خطا در کپی کردن لینک!");
+        console.error("Failed to copy: ", err);
+      }
+    );
+  };
+
   const handleImageSelect = (imageUrl) => {
     setPostData((prev) => ({ ...prev, thumbnail: imageUrl }));
-    setIsMediaModalOpen(false); // بستن مودال پس از انتخاب
+    setIsMediaModalOpen(false);
   };
 
   const filteredCategories = allCategories.filter((cat) =>
@@ -206,7 +228,6 @@ export default function PostEditClientUI({
     <form action={handleFormSubmit}>
       <Toaster position="bottom-left" reverseOrder={false} />
 
-      {/* --- جدید: رندر کردن مودال کتابخانه به صورت شرطی --- */}
       {isMediaModalOpen && (
         <MediaLibrary
           onClose={() => setIsMediaModalOpen(false)}
@@ -227,7 +248,51 @@ export default function PostEditClientUI({
             )}
           </h1>
         </div>
-        <div className="col-span-12 lg:col-span-4 flex items-center justify-start lg:justify-end gap-2 md:gap-4">
+        <div className="col-span-12 lg:col-span-4 flex items-center justify-start lg:justify-end gap-3 md:gap-4">
+          <label
+            htmlFor="approved"
+            className="flex items-center cursor-pointer gap-2"
+            title={
+              !!postData.approved
+                ? "وضعیت: تایید شده"
+                : "وضعیت: در انتظار تایید"
+            }
+          >
+            <div className="relative">
+              <input
+                type="checkbox"
+                id="approved"
+                name="approved"
+                className="sr-only"
+                checked={!!postData.approved}
+                onChange={handleSwitchChange}
+                disabled={isPending}
+              />
+              <div
+                className={`block w-12 h-6 rounded-full transition-colors ${
+                  !!postData.approved
+                    ? "bg-green-500"
+                    : "bg-gray-300 dark:bg-gray-600"
+                }`}
+              ></div>
+              <div
+                className={`dot absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform ${
+                  !!postData.approved ? "translate-x-6" : "translate-x-0"
+                }`}
+              ></div>
+            </div>
+            <span
+              className={`text-sm font-semibold transition-colors hidden sm:inline ${
+                !!postData.approved
+                  ? "text-green-700 dark:text-green-400"
+                  : "text-gray-500 dark:text-gray-400"
+              }`}
+            >
+              {!!postData.approved ? "تایید شده" : "در انتظار"}
+            </span>
+          </label>
+          <div className="w-px h-6 bg-gray-300 dark:bg-gray-600"></div>
+
           {!isNewPost && (
             <button
               type="button"
@@ -236,7 +301,7 @@ export default function PostEditClientUI({
               disabled={isPending}
             >
               <Trash2 className="w-4 h-4" />
-              <span>حذف</span>
+              <span className="hidden sm:inline">حذف</span>
             </button>
           )}
           <button
@@ -265,7 +330,6 @@ export default function PostEditClientUI({
       </header>
 
       <div className="grid grid-cols-12 gap-6 md:gap-8">
-        {/* ستون اصلی محتوا */}
         <div className="col-span-12 lg:col-span-8 space-y-6">
           <div>
             <label htmlFor="title" className="text-sm font-medium mb-1 block">
@@ -281,6 +345,43 @@ export default function PostEditClientUI({
               required
             />
           </div>
+
+          {!isNewPost && (
+            <div className="flex items-center justify-between gap-4 bg-white dark:bg-gray-800 p-2 rounded-lg border border-gray-200 dark:border-gray-700 text-sm">
+              <div className="flex items-center gap-2 overflow-hidden">
+                <span className="font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
+                  لینک کوتاه:
+                </span>
+                <code className="text-primary-light dark:text-sky-400 truncate">
+                  {`http://localhost:3000/?p=${initialPost.id}`}
+                </code>
+              </div>
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <button
+                  type="button"
+                  onClick={handleCopyLink}
+                  title="کپی لینک کوتاه"
+                  className="flex items-center gap-1.5 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 p-1.5 rounded-md transition-colors bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600"
+                >
+                  {isCopied ? (
+                    <Check className="w-4 h-4 text-green-500" />
+                  ) : (
+                    <Copy className="w-4 h-4" />
+                  )}
+                </button>
+                <a
+                  href={`/${postData.slug}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 p-1.5 rounded-md transition-colors bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600"
+                  title="مشاهده پست در سایت"
+                >
+                  <ExternalLink className="w-4 h-4" />
+                </a>
+              </div>
+            </div>
+          )}
+
           <div>
             <label className="text-sm font-medium mb-1 block">
               محتوای اصلی
@@ -311,7 +412,6 @@ export default function PostEditClientUI({
           </div>
         </div>
 
-        {/* سایدبار */}
         <div className="col-span-12 lg:col-span-4 space-y-6">
           <SidebarAccordion
             title="تنظیمات انتشار"
@@ -414,7 +514,6 @@ export default function PostEditClientUI({
             </div>
           </SidebarAccordion>
 
-          {/* --- بخش تصویر شاخص کاملا اصلاح شده --- */}
           <SidebarAccordion title="تصویر شاخص" icon={ImageIcon}>
             <div className="flex items-center gap-2">
               <input

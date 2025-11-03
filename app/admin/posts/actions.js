@@ -58,11 +58,11 @@ export async function getPosts({
   }
 }
 
-// اصلاح شده: دریافت اطلاعات پست بر اساس ID
+// **اصلاح شده:** دریافت اطلاعات پست بر اساس ID (فیلد approved اضافه شد)
 export async function getPostByIdForEditPage(postId) {
   try {
     const [rows] = await db.query(
-      "SELECT id, title, slug, content, excerpt, thumbnail, status, created_at, updated_at, view_count, type FROM posts WHERE id = ?",
+      "SELECT id, title, slug, content, excerpt, thumbnail, status, created_at, updated_at, view_count, type, approved FROM posts WHERE id = ?",
       [postId]
     );
 
@@ -114,7 +114,7 @@ export async function getAllTerms() {
   }
 }
 
-// اصلاح شده: به‌روزرسانی پست با مسیرهای revalidate جدید
+// **اصلاح شده:** به‌روزرسانی پست (فیلد approved اضافه شد)
 export async function updatePost(postId, formData) {
   const connection = await db.getConnection();
   try {
@@ -126,12 +126,13 @@ export async function updatePost(postId, formData) {
     const excerpt = formData.get("excerpt");
     const status = formData.get("status");
     const thumbnail = formData.get("thumbnail");
+    const approved = formData.get("approved") ? 1 : 0; // دریافت مقدار سوییچ
     const categoryIds = formData.getAll("categories").map(Number);
     const tagIds = formData.getAll("tags").map(Number);
 
     await connection.execute(
-      `UPDATE posts SET title = ?, slug = ?, content = ?, excerpt = ?, status = ?, thumbnail = ? WHERE id = ?`,
-      [title, slug, content, excerpt, status, thumbnail, postId]
+      `UPDATE posts SET title = ?, slug = ?, content = ?, excerpt = ?, status = ?, thumbnail = ?, approved = ? WHERE id = ?`,
+      [title, slug, content, excerpt, status, thumbnail, approved, postId]
     );
     await connection.execute("DELETE FROM post_terms WHERE post_id = ?", [
       postId,
@@ -154,6 +155,57 @@ export async function updatePost(postId, formData) {
     await connection.rollback();
     console.error("Database Error updating post:", error.message);
     return { success: false, message: `خطا در به‌روزرسانی: ${error.message}` };
+  } finally {
+    connection.release();
+  }
+}
+
+// **اصلاح شده:** ایجاد پست (فیلد approved اضافه شد)
+export async function createPost(formData) {
+  const connection = await db.getConnection();
+  try {
+    await connection.beginTransaction();
+
+    const title = formData.get("title");
+    const slug = formData.get("slug");
+    const content = formData.get("content");
+    const excerpt = formData.get("excerpt");
+    const status = formData.get("status");
+    const thumbnail = formData.get("thumbnail");
+    const approved = formData.get("approved") ? 1 : 0; // دریافت مقدار سوییچ
+    const categoryIds = formData.getAll("categories").map(Number);
+    const tagIds = formData.getAll("tags").map(Number);
+
+    // ایجاد پست در جدول posts
+    const [postResult] = await connection.execute(
+      `INSERT INTO posts (title, slug, content, excerpt, status, thumbnail, approved, type, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, 'post', NOW(), NOW())`,
+      [title, slug, content, excerpt, status, thumbnail, approved]
+    );
+
+    const postId = postResult.insertId;
+
+    // ایجاد ارتباط با دسته‌بندی‌ها و تگ‌ها
+    const allTermIds = [...new Set([...categoryIds, ...tagIds])];
+    if (allTermIds.length > 0) {
+      const termValues = allTermIds.map((termId) => [postId, termId]);
+      await connection.query(
+        "INSERT INTO post_terms (post_id, term_id) VALUES ?",
+        [termValues]
+      );
+    }
+
+    await connection.commit();
+    revalidatePath("/admin/posts"); // صفحه لیست پست‌ها را revalidate کن
+
+    return {
+      success: true,
+      message: "پست با موفقیت ایجاد شد.",
+      postId: postId, // ID پست جدید را برمی‌گردانیم تا به صفحه ویرایش آن ریدایرکت کنیم
+    };
+  } catch (error) {
+    await connection.rollback();
+    console.error("Database Error creating post:", error.message);
+    return { success: false, message: `خطا در ایجاد پست: ${error.message}` };
   } finally {
     connection.release();
   }
@@ -246,54 +298,5 @@ export async function updateCommentStatus(commentId, status) {
   } catch (error) {
     console.error("Database Error updating comment status:", error.message);
     return { success: false, message: error.message };
-  }
-}
-
-export async function createPost(formData) {
-  const connection = await db.getConnection();
-  try {
-    await connection.beginTransaction();
-
-    const title = formData.get("title");
-    const slug = formData.get("slug");
-    const content = formData.get("content");
-    const excerpt = formData.get("excerpt");
-    const status = formData.get("status");
-    const thumbnail = formData.get("thumbnail");
-    const categoryIds = formData.getAll("categories").map(Number);
-    const tagIds = formData.getAll("tags").map(Number);
-
-    // ایجاد پست در جدول posts
-    const [postResult] = await connection.execute(
-      `INSERT INTO posts (title, slug, content, excerpt, status, thumbnail, type, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, 'post', NOW(), NOW())`,
-      [title, slug, content, excerpt, status, thumbnail]
-    );
-
-    const postId = postResult.insertId;
-
-    // ایجاد ارتباط با دسته‌بندی‌ها و تگ‌ها
-    const allTermIds = [...new Set([...categoryIds, ...tagIds])];
-    if (allTermIds.length > 0) {
-      const termValues = allTermIds.map((termId) => [postId, termId]);
-      await connection.query(
-        "INSERT INTO post_terms (post_id, term_id) VALUES ?",
-        [termValues]
-      );
-    }
-
-    await connection.commit();
-    revalidatePath("/admin/posts"); // صفحه لیست پست‌ها را revalidate کن
-
-    return {
-      success: true,
-      message: "پست با موفقیت ایجاد شد.",
-      postId: postId, // ID پست جدید را برمی‌گردانیم تا به صفحه ویرایش آن ریدایرکت کنیم
-    };
-  } catch (error) {
-    await connection.rollback();
-    console.error("Database Error creating post:", error.message);
-    return { success: false, message: `خطا در ایجاد پست: ${error.message}` };
-  } finally {
-    connection.release();
   }
 }

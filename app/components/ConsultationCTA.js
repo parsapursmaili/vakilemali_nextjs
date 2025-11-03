@@ -9,11 +9,12 @@ const ConsultationCTA = () => {
         {/* بخش تصویر وکیل */}
         <div className="flex-shrink-0">
           <Image
-            src="/images/lawyer-avatar.png"
+            src="/lawyer-avatar.webp"
             alt="مرضیه توانگر - وکیل سرپرست موسسه"
             width={120}
             height={120}
             className="rounded-full border-4 border-white dark:border-muted/50 shadow-md object-cover"
+            unoptimized
           />
         </div>
 

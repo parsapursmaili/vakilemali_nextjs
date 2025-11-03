@@ -1,3 +1,5 @@
+// فایل: tailwind.config.js
+
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   content: [
@@ -41,6 +43,20 @@ module.exports = {
         lg: "var(--radius-lg)",
         full: "var(--radius-full)",
       },
+      // ✅ --- این بخش برای اصلاح استایل لیست‌ها در خروجی نهایی اضافه شده است ---
+      typography: (theme) => ({
+        DEFAULT: {
+          css: {
+            // حذف مارجین بالا و پایین از پاراگراف‌های داخل آیتم لیست
+            "ul > li > p:first-of-type, ol > li > p:first-of-type": {
+              marginTop: "0",
+            },
+            "ul > li > p:last-of-type, ol > li > p:last-of-type": {
+              marginBottom: "0",
+            },
+          },
+        },
+      }),
     },
   },
   plugins: [require("@tailwindcss/typography")],
