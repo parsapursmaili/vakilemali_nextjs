@@ -1,14 +1,7 @@
-// فایل: vakilemali/app/admin/posts/components/TiptapEditor.js
-
 "use client";
 
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
-import ListItem from "@tiptap/extension-list-item";
-
-// ==============================================================================
-// ✨✨✨ اصلاح خطای بیلد: استفاده از Named Imports برای افزونه‌های جدول ✨✨✨
-// ==============================================================================
 import { Table } from "@tiptap/extension-table";
 import { TableCell } from "@tiptap/extension-table-cell";
 import { TableHeader } from "@tiptap/extension-table-header";
@@ -35,16 +28,8 @@ import {
   Plus,
 } from "lucide-react";
 
-//================================================================================
-// بازنویسی قانون اصلی Tiptap برای حل مشکل ساختار بولت‌ها
-//================================================================================
-const CustomListItem = ListItem.extend({
-  content: "inline*",
-});
-
-//================================================================================
-// کامپوننت نوار ابزار (MenuBar) - کامل و بدون تغییر
-//================================================================================
+// کامپوننت MenuBar بدون تغییر باقی می‌ماند. کد آن را برای خلاصه‌سازی حذف کرده‌ام.
+// شما کد MenuBar قبلی خود را اینجا قرار دهید.
 const MenuBar = ({ editor, currentView, onViewSwitch }) => {
   if (!editor) return null;
 
@@ -225,9 +210,32 @@ const MenuBar = ({ editor, currentView, onViewSwitch }) => {
   );
 };
 
-//================================================================================
-// کامپوننت اصلی ویرایشگر - **نسخه نهایی و اصلاح شده**
-//================================================================================
+// ✨ تابع کمکی برای تبدیل محتوای قدیمی به HTML استاندارد
+function sanitizeContentForEditor(html) {
+  if (!html) return "<p></p>"; // همیشه با یک پاراگراف خالی شروع کن
+
+  // از همان منطق صفحه پست استفاده می‌کنیم
+  const protectedBlocksRegex =
+    /(<table[\s\S]*?<\/table>|<ul[\s\S]*?<\/ul>|<ol[\s\S]*?<\/ol>)/gi;
+  const parts = html.split(protectedBlocksRegex);
+
+  const processedParts = parts.map((part) => {
+    if (part.match(protectedBlocksRegex)) {
+      return part;
+    } else {
+      // این بار \n یا \n\n را به تگ‌های <p> واقعی تبدیل می‌کنیم
+      return part
+        .trim()
+        .replace(/\n+/g, "</p><p>")
+        .replace(/^/, "<p>") // اطمینان از وجود تگ <p> در ابتدا
+        .replace(/$/, "</p>"); // اطمینان از وجود تگ <p> در انتها
+    }
+  });
+
+  let finalHtml = processedParts.join("").replace(/<p>\s*<\/p>/g, "");
+  return finalHtml;
+}
+
 export default function TiptapEditor({ initialContent, onContentChange }) {
   const [isClient, setIsClient] = useState(false);
   const [viewMode, setViewMode] = useState("wysiwyg");
@@ -239,18 +247,14 @@ export default function TiptapEditor({ initialContent, onContentChange }) {
 
   const editor = useEditor({
     extensions: [
-      StarterKit.configure({
-        listItem: false,
-      }),
-      CustomListItem,
-
-      // سایر افزونه‌ها
+      StarterKit, // ✨ استفاده از StarterKit استاندارد
       Table.configure({ resizable: true }),
       TableRow,
       TableHeader,
       TableCell,
     ],
-    content: initialContent || "",
+    // ✨ محتوای اولیه فقط یک بار، پس از پاکسازی، به ویرایشگر داده می‌شود
+    content: sanitizeContentForEditor(initialContent),
     editorProps: {
       attributes: {
         class:
@@ -258,6 +262,7 @@ export default function TiptapEditor({ initialContent, onContentChange }) {
       },
     },
     onUpdate: ({ editor }) => {
+      // ✨ ویرایشگر حالا همیشه HTML تمیز و استاندارد تولید می‌کند
       const newHtml = editor.getHTML();
       onContentChange(newHtml);
       setHtmlContent(newHtml);
@@ -274,9 +279,8 @@ export default function TiptapEditor({ initialContent, onContentChange }) {
   const handleViewSwitch = (newView) => {
     if (viewMode === newView) return;
     if (newView === "wysiwyg") {
-      editor?.commands.setContent(htmlContent, {
-        emitUpdate: false,
-      });
+      // چون هر دو حالت با HTML استاندارد کار می‌کنند، تبدیل لازم نیست
+      editor?.commands.setContent(htmlContent, { emitUpdate: false });
     } else {
       setHtmlContent(editor?.getHTML() || "");
     }
@@ -284,6 +288,7 @@ export default function TiptapEditor({ initialContent, onContentChange }) {
   };
 
   if (!isClient || !editor) {
+    // ... کد حالت لودینگ بدون تغییر
     return (
       <div className="border rounded-lg border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 min-h-[540px] p-4 animate-pulse">
         <div className="h-10 bg-gray-200 dark:bg-gray-700 rounded-md w-full"></div>

@@ -4,13 +4,12 @@ import Image from "next/image";
 import { notFound } from "next/navigation";
 import { Clock, Tag, User, Eye } from "lucide-react";
 import parse from "html-react-parser";
-import ConsultationCTA from "@/components/ConsultationCTA";
+// Cheerio دیگر لازم نیست، آن را حذف می‌کنیم.
 
-// بخش ایمپورت‌ها: توابع و کامپوننت‌های مورد نیاز
+import ConsultationCTA from "@/components/ConsultationCTA";
 import { getPostData, getRelatedPosts } from "./post";
 import PostsSlider from "@/components/PostsSlider";
 
-// بارگذاری داینامیک کامپوننت‌ها برای بهینه‌سازی
 const PostViews = dynamic(() => import("@/components/PostViews"), {
   loading: () => (
     <div className="text-sm text-foreground/70 flex items-center">
@@ -43,6 +42,44 @@ function cleanImageUrlPath(src) {
   }
 }
 
+// ==============================================================================
+// ✨✨✨ نسخه نهایی: پردازش هوشمند محتوا با جداسازی بلوک‌های محافظت‌شده ✨✨✨
+// ==============================================================================
+function processContentSmartly(html) {
+  if (!html) return "";
+
+  // 1. یک عبارت منظم برای پیدا کردن تمام بلوک‌های table, ul, و ol می‌سازیم.
+  // این عبارت کل بلوک از تگ باز تا تگ بسته را به عنوان یک بخش واحد در نظر می‌گیرد.
+  const protectedBlocksRegex =
+    /(<table[\s\S]*?<\/table>|<ul[\s\S]*?<\/ul>|<ol[\s\S]*?<\/ol>)/gi;
+
+  // 2. محتوای HTML را بر اساس این بلوک‌های محافظت‌شده به چند قسمت تقسیم می‌کنیم.
+  // نتیجه آرایه‌ای خواهد بود که در آن، بخش‌های عادی و محافظت‌شده یکی در میان قرار دارند.
+  const parts = html.split(protectedBlocksRegex);
+
+  // 3. روی این قسمت‌ها پیمایش کرده و فقط بخش‌های عادی را پردازش می‌کنیم.
+  const processedParts = parts.map((part, index) => {
+    // اگر `part` یکی از بلوک‌های محافظت‌شده باشد (که توسط split جدا شده)، بدون تغییر باقی می‌ماند.
+    // با بررسی خود `part` مطمئن می‌شویم که فقط بخش‌های متنی عادی پردازش شوند.
+    if (part.match(protectedBlocksRegex)) {
+      return part; // این یک بلوک محافظت‌شده است، دست نزن.
+    } else {
+      // این یک بلوک عادی است، می‌توانیم \n ها را با خیال راحت جایگزین کنیم.
+      // ابتدا و انتهای بخش را trim می‌کنیم تا از پاراگراف‌های خالی ناخواسته جلوگیری شود.
+      if (part.trim() === "") return "";
+      return part.replace(/\n+/g, "</p><p>");
+    }
+  });
+
+  // 4. تمام قسمت‌ها را دوباره به هم متصل می‌کنیم تا HTML نهایی ساخته شود.
+  let finalHtml = processedParts.join("");
+
+  // 5. ممکن است پاراگراف‌های خالی (<p></p> یا <p>  </p>) ایجاد شده باشد، آنها را حذف می‌کنیم.
+  finalHtml = finalHtml.replace(/<p>\s*<\/p>/g, "");
+
+  return finalHtml;
+}
+
 // تولید متادیتای صفحه برای سئو
 export async function generateMetadata({ params }) {
   const { slug } = params;
@@ -69,7 +106,6 @@ export async function generateMetadata({ params }) {
 export default async function SinglePostPage({ params }) {
   const slug = params.slug;
 
-  // بخش دریافت داده‌ها از سرور
   const { post, terms } = await getPostData(slug);
   if (!post) notFound();
 
@@ -83,8 +119,10 @@ export default async function SinglePostPage({ params }) {
     categoryId: primaryCategory ? primaryCategory.id : null,
   });
 
-  // پردازش محتوای HTML برای نمایش صحیح تصاویر
-  const content = parse(String(post.content || ""), {
+  // ✨ استفاده از تابع پردازش هوشمند و نهایی ✨
+  const processedHtml = processContentSmartly(post.content);
+
+  const content = parse(String(processedHtml || ""), {
     replace: (node) => {
       if (node.name === "img") {
         const { src, alt } = node.attribs;
@@ -107,7 +145,6 @@ export default async function SinglePostPage({ params }) {
 
   return (
     <main className="w-full !p-0">
-      {/* بخش اصلی محتوای مقاله */}
       <article
         className="
           w-full sm:max-w-4xl sm:mx-auto
@@ -207,7 +244,6 @@ export default async function SinglePostPage({ params }) {
         <PostsSlider title="مطالب مرتبط" posts={relatedPosts} />
       </div>
 
-      {/* بخش نظرات */}
       <div className=" mb-10 w-full px-0 sm:max-w-4xl sm:mx-auto mt-10">
         <PostCommentsSection postId={post.id} postSlug={slug} />
       </div>

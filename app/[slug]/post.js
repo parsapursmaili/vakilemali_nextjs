@@ -1,8 +1,8 @@
 "use server";
 import { db } from "@/lib/db/mysql";
 import { revalidatePath } from "next/cache";
-
-// تابع اول: گرفتن اطلاعات پست تکی (با یک تغییر کوچک)
+import { isAuthenticated } from "@/actions/auth";
+import { cookies } from "next/headers";
 export async function getPostData(slug) {
   try {
     const slug2 = decodeURIComponent(slug);
@@ -36,15 +36,56 @@ export async function getPostData(slug) {
 
 // تابع دوم: افزایش بازدید (بدون تغییر)
 export async function incrementPostViews(postId) {
-  // ... (کد این تابع بدون تغییر باقی می‌ماند)
+  if (!postId) {
+    return false;
+  }
+
+  // مرحله ۱: بررسی لاگین بودن ادمین
+  if (await isAuthenticated()) {
+    return false;
+  }
+
+  const cookieStore = cookies();
+  const viewedPostsCookie = cookieStore.get("viewed_posts");
+  const viewedPosts = viewedPostsCookie
+    ? viewedPostsCookie.value.split(",")
+    : [];
+
+  // مرحله ۲: جلوگیری از بازدید تکراری با استفاده از کوکی
+  if (viewedPosts.includes(String(postId))) {
+    return false;
+  }
+
   try {
+    // مرحله ۳: اجرای دو کوئری به صورت متوالی
+    // کوئری اول: افزایش شمارنده کلی در جدول posts
     await db.execute(
       "UPDATE posts SET view_count = view_count + 1 WHERE id = ?",
       [postId]
     );
-    return true;
+
+    // کوئری دوم: ثبت بازدید روزانه در جدول post_view
+    const today = new Date().toISOString().slice(0, 10);
+    await db.execute(
+      `INSERT INTO post_view (post_id, view_date, view_count) VALUES (?, ?, 1)
+       ON DUPLICATE KEY UPDATE view_count = view_count + 1`,
+      [postId, today]
+    );
+
+    // مرحله ۴: تنظیم کوکی برای جلوگیری از بازدید مجدد
+    const newViewedPosts = [...viewedPosts, postId];
+    cookieStore.set("viewed_posts", newViewedPosts.join(","), {
+      path: "/",
+      maxAge: 60 * 60 * 24 * 365, // ۱ سال
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+    });
+
+    return true; // اعلام موفقیت
   } catch (error) {
     console.error("Database Error incrementing view:", error);
+    // اگر هر کدام از کوئری‌ها با خطا مواجه شوند، عملیات متوقف شده و false برمی‌گردد
     return false;
   }
 }
