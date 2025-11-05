@@ -1,0 +1,35 @@
+/* jalali-picker-styles.css */
+.jalali-date-picker-popup {
+  direction: rtl;
+  --rdp-cell-size: 40px;
+  --rdp-accent-color: var(--primary);
+  --rdp-background-color: var(--primary-light);
+  margin: 0;
+}
+.jalali-date-picker-popup .rdp-nav {
+  display: flex;
+  justify-content: space-between;
+}
+.jalali-date-picker-popup .rdp-nav_button {
+  width: var(--rdp-cell-size);
+  height: var(--rdp-cell-size);
+}
+.jalali-date-picker-popup .rdp-nav_button_previous .rdp-nav_icon {
+  transform: rotate(180deg);
+}
+.jalali-date-picker-popup .rdp-nav_button_next .rdp-nav_icon {
+  transform: rotate(180deg);
+}
+.jalali-date-picker-popup .rdp-head_cell {
+  font-size: 0.85em;
+  font-weight: bold;
+  color: var(--foreground);
+}
+.jalali-date-picker-popup .rdp-day_range_start,
+.jalali-date-picker-popup .rdp-day_range_end {
+  color: white !important;
+}
+.jalali-date-picker-popup .rdp-day_range_middle {
+  background-color: var(--primary-light) !important;
+  color: white;
+}

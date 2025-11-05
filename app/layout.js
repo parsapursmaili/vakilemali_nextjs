@@ -1,7 +1,8 @@
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { vazir } from "./font.js"; // فرض بر این است که فونت وزیر به درستی اینجا import شده است
-import Header from "@/components/Header.jsx"; //  <-- ایمپورت کردن کامپوننت هدر
+import { vazir } from "./font.js";
+import Header from "@/components/Header.jsx";
+import ProgressBarProvider from "@/components/ProgressBarProvider.jsx"; // <-- ۱. ایمپورت کامپوننت جدید
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -26,10 +27,11 @@ export default function RootLayout({ children }) {
       className={`${vazir.variable} ${geistSans.variable} ${geistMono.variable}`}
     >
       <body className={`antialiased bg-background text-foreground`}>
-        {/* ===== کامپوننت هدر اینجا اضافه شد ===== */}
+        {/* ===== ۲. استفاده از کامپوننت Provider در اینجا ===== */}
+        <ProgressBarProvider />
+
         <Header />
 
-        {/* محتوای اصلی صفحات در اینجا رندر می‌شود */}
         <main className="container mx-auto px-4 py-8">{children}</main>
       </body>
     </html>

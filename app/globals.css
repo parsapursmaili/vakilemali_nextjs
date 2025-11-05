@@ -396,3 +396,19 @@ tbody tr:nth-child(even) {
 .ProseMirror.resize-cursor {
   cursor: col-resize;
 }
+
+#nprogress .bar {
+  height: 6px !important;
+
+  background: linear-gradient(
+    to right,
+    var(--accent),
+    var(--primary-light)
+  ) !important;
+
+  box-shadow: 0 0 15px var(--accent);
+}
+
+#nprogress .peg {
+  box-shadow: 0 0 15px var(--accent), 0 0 10px var(--accent) !important;
+}
