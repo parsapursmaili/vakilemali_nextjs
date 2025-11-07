@@ -1,21 +1,12 @@
 // StatisticsClient.jsx
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useRef, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import dynamic from "next/dynamic";
+import moment from "jalali-moment";
 import PostChartModal from "./PostChartModal";
-import "./jalali-picker-styles.css"; // Import the custom styles
 
-// Dynamic import for the NEW JalaliDatePicker to ensure it's client-side only
-const JalaliDatePicker = dynamic(() => import("./JalaliDatePicker"), {
-  ssr: false,
-  loading: () => (
-    <div className="h-[40px] w-[250px] bg-white border border-gray-300 rounded-md animate-pulse"></div>
-  ),
-});
-
-// Icons
+// آیکون‌ها
 const EyeIcon = () => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
@@ -69,11 +60,35 @@ export default function StatisticsClient({ initialData }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
-  const [modalPost, setModalPost] = useState(null); // This state is crucial for the modal
+  const [modalPost, setModalPost] = useState(null);
 
+  const [isCustomRangeOpen, setIsCustomRangeOpen] = useState(false);
+  const [customStartDate, setCustomStartDate] = useState("");
+  const [customEndDate, setCustomEndDate] = useState("");
+
+  const customRangeRef = useRef(null);
   const activePeriod = searchParams.get("period") || "week";
 
+  // بستن پاپ‌آپ با کلیک بیرون
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (
+        customRangeRef.current &&
+        !customRangeRef.current.contains(event.target)
+      ) {
+        setIsCustomRangeOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   const handlePeriodChange = (period) => {
+    if (period === "custom") {
+      setIsCustomRangeOpen(true);
+      return;
+    }
+    setIsCustomRangeOpen(false);
     const params = new URLSearchParams(window.location.search);
     params.set("period", period);
     params.delete("startDate");
@@ -81,12 +96,15 @@ export default function StatisticsClient({ initialData }) {
     startTransition(() => router.push(`?${params.toString()}`));
   };
 
-  const handleDateRangeApply = ({ startDate, endDate }) => {
-    const params = new URLSearchParams();
-    params.set("period", "custom");
-    params.set("startDate", startDate);
-    params.set("endDate", endDate);
-    startTransition(() => router.push(`?${params.toString()}`));
+  const handleDateRangeApply = () => {
+    if (customStartDate && customEndDate) {
+      setIsCustomRangeOpen(false);
+      const params = new URLSearchParams();
+      params.set("period", "custom");
+      params.set("startDate", customStartDate);
+      params.set("endDate", customEndDate);
+      startTransition(() => router.push(`?${params.toString()}`));
+    }
   };
 
   const periods = [
@@ -96,6 +114,7 @@ export default function StatisticsClient({ initialData }) {
     { key: "year", label: "سال اخیر" },
     { key: "all", label: "کل دوران" },
   ];
+  const todayJalali = moment().locale("fa").format("YYYY/MM/DD");
 
   return (
     <div
@@ -147,7 +166,7 @@ export default function StatisticsClient({ initialData }) {
       </div>
 
       <div className="bg-[var(--muted)] p-3 rounded-lg flex flex-wrap items-center justify-between gap-4 mb-6">
-        <nav className="flex items-center gap-2">
+        <nav className="flex items-center gap-2 flex-wrap">
           {periods.map(({ key, label }) => (
             <button
               key={key}
@@ -161,8 +180,47 @@ export default function StatisticsClient({ initialData }) {
               {label}
             </button>
           ))}
+          <div className="relative" ref={customRangeRef}>
+            <button
+              onClick={() => handlePeriodChange("custom")}
+              className={`px-3 py-1.5 text-sm font-semibold rounded-md transition-colors ${
+                activePeriod === "custom"
+                  ? "bg-[var(--primary)] text-white"
+                  : "hover:bg-opacity-80"
+              }`}
+            >
+              انتخاب بازه
+            </button>
+            {isCustomRangeOpen && (
+              <div className="absolute top-full left-0 mt-2 z-10 bg-[var(--background)] border border-[var(--muted)] rounded-lg shadow-lg p-4 w-72 space-y-3">
+                <p className="text-sm text-center">
+                  تاریخ امروز:{" "}
+                  <span className="font-semibold">{todayJalali}</span>
+                </p>
+                <input
+                  type="text"
+                  placeholder="شروع: YYYY/MM/DD"
+                  value={customStartDate}
+                  onChange={(e) => setCustomStartDate(e.target.value)}
+                  className="w-full px-2 py-1.5 border border-gray-300 rounded-md text-sm"
+                />
+                <input
+                  type="text"
+                  placeholder="پایان: YYYY/MM/DD"
+                  value={customEndDate}
+                  onChange={(e) => setCustomEndDate(e.target.value)}
+                  className="w-full px-2 py-1.5 border border-gray-300 rounded-md text-sm"
+                />
+                <button
+                  onClick={handleDateRangeApply}
+                  className="button-primary w-full !py-2 text-sm"
+                >
+                  اعمال
+                </button>
+              </div>
+            )}
+          </div>
         </nav>
-        <JalaliDatePicker onApply={handleDateRangeApply} />
       </div>
 
       <div className="overflow-x-auto bg-[var(--background)] rounded-lg border border-[var(--muted)]">
@@ -192,7 +250,7 @@ export default function StatisticsClient({ initialData }) {
                 </td>
                 <td className="p-4 font-semibold">
                   <a
-                    href={`/blog/${post.slug}`}
+                    href={`/${post.slug}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="hover:underline"

@@ -5,6 +5,9 @@ import { db } from "@/lib/db/mysql";
 import moment from "jalali-moment";
 
 function toGregorian(jalaliDateStr) {
+  if (!/^\d{4}\/\d{1,2}\/\d{1,2}$/.test(jalaliDateStr)) {
+    return moment().format("YYYY-MM-DD");
+  }
   return moment.from(jalaliDateStr, "fa", "YYYY/MM/DD").format("YYYY-MM-DD");
 }
 
@@ -14,7 +17,7 @@ export async function getStatisticsData({
   endDate: jalaliEndDate,
 }) {
   try {
-    moment.locale("en"); // Set moment to English for calculations
+    moment.locale("en");
     const today = moment().endOf("day").format("YYYY-MM-DD");
     let startDate, endDate;
 
@@ -36,8 +39,8 @@ export async function getStatisticsData({
           endDate = today;
           break;
         case "all":
-          break; // No date range needed
-        default: // 'week'
+          break;
+        default:
           startDate = moment().subtract(7, "days").format("YYYY-MM-DD");
           endDate = today;
           break;
@@ -48,9 +51,9 @@ export async function getStatisticsData({
       "SELECT MIN(view_date) as first_date FROM post_view"
     );
 
-    let totalViews = 0;
-    let posts = [];
-    let topPost = null;
+    let totalViews = 0,
+      posts = [],
+      topPost = null;
 
     if (period === "all") {
       const [[{ total }]] = await db.query(
@@ -78,20 +81,21 @@ export async function getStatisticsData({
         topPost = { title: posts[0].title, views: posts[0].period_views };
     }
 
+    // ===== اصلاح نهایی و قطعی برای نمایش تاریخ شمسی با فرمت صحیح jYYYY/jMM/jDD =====
     moment.locale("fa");
     return {
       totalViews,
       topPost,
       posts,
       earliestDateJalali: first_date
-        ? moment(first_date).format("YYYY/MM/DD")
+        ? moment(first_date).format("jYYYY/jMM/jDD")
         : "نامشخص",
       range:
         period === "all"
           ? "کل دوران"
           : `از ${moment(startDate, "YYYY-MM-DD").format(
-              "YYYY/MM/DD"
-            )} تا ${moment(endDate, "YYYY-MM-DD").format("YYYY/MM/DD")}`,
+              "jYYYY/jMM/jDD"
+            )} تا ${moment(endDate, "YYYY-MM-DD").format("jYYYY/jMM/jDD")}`,
     };
   } catch (error) {
     console.error("Statistics Data Error:", error.message);
@@ -100,11 +104,12 @@ export async function getStatisticsData({
       topPost: null,
       posts: [],
       earliestDateJalali: "",
-      range: "",
+      range: "خطا در پردازش",
     };
   }
 }
 
+// تابع نمودار بدون تغییر
 export async function getPostChartData({
   postId,
   period,
@@ -115,7 +120,6 @@ export async function getPostChartData({
   moment.locale("en");
   const today = moment().endOf("day").format("YYYY-MM-DD");
   let startDate, endDate;
-
   if (period === "custom" && jalaliStartDate && jalaliEndDate) {
     startDate = toGregorian(jalaliStartDate);
     endDate = toGregorian(jalaliEndDate);
@@ -139,14 +143,11 @@ export async function getPostChartData({
         break;
     }
   }
-
   if (period === "all") return [];
-
   const [dailyData] = await db.query(
     `SELECT view_date, view_count FROM post_view WHERE post_id = ? AND view_date BETWEEN ? AND ? ORDER BY view_date ASC`,
     [postId, startDate, endDate]
   );
-
   moment.locale("fa");
   return dailyData.map((d) => ({
     date: moment(d.view_date).format("jYYYY/jM/jD"),

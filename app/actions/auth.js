@@ -49,7 +49,7 @@ export async function login(prevState, formData) {
     maxAge: maxAgeInSeconds,
   });
 
-  redirect("/admin");
+  redirect("/admin/statistics");
 }
 
 export async function logout() {
