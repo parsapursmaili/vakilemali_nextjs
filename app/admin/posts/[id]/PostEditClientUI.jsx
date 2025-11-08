@@ -8,7 +8,7 @@ import {
   updateCommentStatus,
   performBulkAction,
 } from "../actions";
-import TiptapEditor from "../components/TiptapEditor";
+// import TiptapEditor from "../components/TiptapEditor"; // <--- حذف شد
 // ایمپورت کتابخانه اعلان
 import { Toaster, toast } from "react-hot-toast";
 import {
@@ -99,6 +99,7 @@ export default function PostEditClientUI({
   const isNewPost = !initialPost.id;
 
   const [postData, setPostData] = useState(initialPost);
+  // محتوای پست که اکنون قرار است کد HTML خام باشد
   const [content, setContent] = useState(initialPost.content || "");
   const [categorySearch, setCategorySearch] = useState("");
   const [isMediaModalOpen, setIsMediaModalOpen] = useState(false);
@@ -121,6 +122,7 @@ export default function PostEditClientUI({
   };
 
   const handleFormSubmit = (formData) => {
+    // محتوای (HTML خام) را از استیت content برداشته و به FormData اضافه می‌کنیم
     formData.set("content", content);
     formData.set("excerpt", postData.excerpt || "");
     formData.set("approved", postData.approved ? "1" : "0");
@@ -382,15 +384,25 @@ export default function PostEditClientUI({
             </div>
           )}
 
+          {/* ========================================================================= */}
+          {/* جایگزینی TiptapEditor با textarea برای ورود HTML خام */}
+          {/* ========================================================================= */}
           <div>
-            <label className="text-sm font-medium mb-1 block">
-              محتوای اصلی
+            <label htmlFor="content" className="text-sm font-medium mb-1 block">
+              محتوای اصلی (HTML خام)
             </label>
-            <TiptapEditor
-              initialContent={content}
-              onContentChange={setContent}
-            />
+            <textarea
+              id="content"
+              name="content" // این name برای استفاده در صورت عدم استفاده از formData.set نیز مفید است
+              rows="20"
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              className="w-full text-sm p-4 h-[500px] !direction-ltr !text-left font-mono"
+              placeholder="کد HTML محتوای اصلی پست را اینجا وارد کنید..."
+              required // محتوا باید اجباری باشد
+            ></textarea>
           </div>
+          {/* ========================================================================= */}
 
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
             <div className="flex items-center gap-2 font-bold text-gray-800 dark:text-gray-200 mb-3">

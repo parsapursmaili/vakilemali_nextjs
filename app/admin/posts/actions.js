@@ -4,7 +4,6 @@ import { db } from "@/lib/db/mysql"; // مسیر اتصال به دیتابیس 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
-// تابع اصلی برای دریافت پست‌ها (بدون تغییر منطق اصلی)
 export async function getPosts({
   page = 1,
   limit = 15,
@@ -58,7 +57,6 @@ export async function getPosts({
   }
 }
 
-// **اصلاح شده:** دریافت اطلاعات پست بر اساس ID (فیلد approved اضافه شد)
 export async function getPostByIdForEditPage(postId) {
   try {
     const [rows] = await db.query(
@@ -97,7 +95,6 @@ export async function getPostByIdForEditPage(postId) {
   }
 }
 
-// تابع دریافت تگ‌ها و دسته‌بندی‌ها (بدون تغییر)
 export async function getAllTerms() {
   try {
     const [terms] = await db.query(
@@ -114,7 +111,7 @@ export async function getAllTerms() {
   }
 }
 
-// **اصلاح شده:** به‌روزرسانی پست (فیلد approved اضافه شد)
+// **اصلاح شده:** به‌روزرسانی پست (رفع باگ approved)
 export async function updatePost(postId, formData) {
   const connection = await db.getConnection();
   try {
@@ -126,7 +123,10 @@ export async function updatePost(postId, formData) {
     const excerpt = formData.get("excerpt");
     const status = formData.get("status");
     const thumbnail = formData.get("thumbnail");
-    const approved = formData.get("approved") ? 1 : 0; // دریافت مقدار سوییچ
+
+    // ✨✨✨ رفع باگ: فقط اگر مقدار دقیقاً "1" باشد، approved برابر 1 قرار می‌گیرد.
+    const approved = formData.get("approved") === "1" ? 1 : 0;
+
     const categoryIds = formData.getAll("categories").map(Number);
     const tagIds = formData.getAll("tags").map(Number);
 
@@ -148,7 +148,7 @@ export async function updatePost(postId, formData) {
 
     await connection.commit();
     revalidatePath("/admin/posts");
-    revalidatePath(`/${slug}`); // Revalidate the public post page at root
+    revalidatePath(`/${slug}`);
 
     return { success: true, message: "پست با موفقیت به‌روزرسانی شد." };
   } catch (error) {
@@ -160,7 +160,7 @@ export async function updatePost(postId, formData) {
   }
 }
 
-// **اصلاح شده:** ایجاد پست (فیلد approved اضافه شد)
+// **اصلاح شده:** ایجاد پست (رفع باگ approved)
 export async function createPost(formData) {
   const connection = await db.getConnection();
   try {
@@ -172,11 +172,13 @@ export async function createPost(formData) {
     const excerpt = formData.get("excerpt");
     const status = formData.get("status");
     const thumbnail = formData.get("thumbnail");
-    const approved = formData.get("approved") ? 1 : 0; // دریافت مقدار سوییچ
+
+    // ✨✨✨ رفع باگ: فقط اگر مقدار دقیقاً "1" باشد، approved برابر 1 قرار می‌گیرد.
+    const approved = formData.get("approved") === "1" ? 1 : 0;
+
     const categoryIds = formData.getAll("categories").map(Number);
     const tagIds = formData.getAll("tags").map(Number);
 
-    // ایجاد پست در جدول posts
     const [postResult] = await connection.execute(
       `INSERT INTO posts (title, slug, content, excerpt, status, thumbnail, approved, type, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, 'post', NOW(), NOW())`,
       [title, slug, content, excerpt, status, thumbnail, approved]
@@ -184,7 +186,6 @@ export async function createPost(formData) {
 
     const postId = postResult.insertId;
 
-    // ایجاد ارتباط با دسته‌بندی‌ها و تگ‌ها
     const allTermIds = [...new Set([...categoryIds, ...tagIds])];
     if (allTermIds.length > 0) {
       const termValues = allTermIds.map((termId) => [postId, termId]);
@@ -195,12 +196,12 @@ export async function createPost(formData) {
     }
 
     await connection.commit();
-    revalidatePath("/admin/posts"); // صفحه لیست پست‌ها را revalidate کن
+    revalidatePath("/admin/posts");
 
     return {
       success: true,
       message: "پست با موفقیت ایجاد شد.",
-      postId: postId, // ID پست جدید را برمی‌گردانیم تا به صفحه ویرایش آن ریدایرکت کنیم
+      postId: postId,
     };
   } catch (error) {
     await connection.rollback();
@@ -211,7 +212,6 @@ export async function createPost(formData) {
   }
 }
 
-// **اصلاح کلیدی:** رفع باگ "Incorrect arguments"
 export async function quickEditPost(formData) {
   const connection = await db.getConnection();
   try {
@@ -227,7 +227,6 @@ export async function quickEditPost(formData) {
       [title, slug, status, postId]
     );
 
-    // فقط دسته‌بندی‌ها را تغییر می‌دهیم
     const [existingCategoryTerms] = await connection.query(
       `SELECT term_id FROM post_terms pt JOIN terms t ON pt.term_id = t.id WHERE pt.post_id = ? AND t.type = 'category'`,
       [postId]
@@ -235,7 +234,6 @@ export async function quickEditPost(formData) {
     const existingCategoryIds = existingCategoryTerms.map((t) => t.term_id);
 
     if (existingCategoryIds.length > 0) {
-      // **رفع باگ:** استفاده از connection.query و ارسال آرایه به عنوان پارامتر برای IN
       await connection.query(
         "DELETE FROM post_terms WHERE post_id = ? AND term_id IN (?)",
         [postId, existingCategoryIds]
@@ -262,7 +260,6 @@ export async function quickEditPost(formData) {
   }
 }
 
-// اصلاح شده: عملیات گروهی با مسیر revalidate جدید
 export async function performBulkAction(action, postIds) {
   if (!postIds || postIds.length === 0)
     return { success: false, message: "هیچ پستی انتخاب نشده است." };
@@ -286,14 +283,13 @@ export async function performBulkAction(action, postIds) {
   }
 }
 
-// اصلاح شده: مدیریت کامنت‌ها با مسیر revalidate جدید
 export async function updateCommentStatus(commentId, status) {
   try {
     await db.execute("UPDATE comments SET status = ? WHERE id = ?", [
       status,
       commentId,
     ]);
-    revalidatePath("/admin/posts/[id]", "page"); // Revalidate the specific edit page
+    revalidatePath("/admin/posts/[id]", "page");
     return { success: true, message: "وضعیت دیدگاه تغییر کرد." };
   } catch (error) {
     console.error("Database Error updating comment status:", error.message);

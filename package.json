@@ -15,8 +15,6 @@
     "@tiptap/extension-table-cell": "^3.10.1",
     "@tiptap/extension-table-header": "^3.10.1",
     "@tiptap/extension-table-row": "^3.10.1",
-    "@tiptap/react": "^3.10.1",
-    "@tiptap/starter-kit": "^3.10.1",
     "cheerio": "^1.1.2",
     "date-fns": "^4.1.0",
     "html-react-parser": "^5.2.6",
