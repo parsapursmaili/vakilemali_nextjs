@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useTransition } from "react";
+import { useTransition, useEffect, useState } from "react"; // 💡 اضافه شدن useState
 import {
   LayoutDashboard,
   FilePenLine,
@@ -10,10 +10,38 @@ import {
   ListChecks,
   LogOut,
 } from "lucide-react";
-import { logout } from "@/actions/auth";
+import { logout, isAuthenticated } from "@/actions/auth";
 
-export default function AdminBar() {
+export function AdminBar() {
   const [isPending, startTransition] = useTransition();
+  // 💡 State جدید برای مدیریت وضعیت احراز هویت و بارگذاری
+  const [loading, setLoading] = useState(true);
+  const [authenticated, setAuthenticated] = useState(false);
+
+  useEffect(() => {
+    // 💡 تعریف و اجرای تابع async داخلی
+    const checkAuth = async () => {
+      try {
+        const auth = await isAuthenticated(); // 💡 فرض بر این است که isAuthenticated یک تابع async است
+        setAuthenticated(auth);
+      } catch (error) {
+        console.error("Authentication check failed:", error);
+        setAuthenticated(false);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    checkAuth();
+  }, []);
+
+  if (loading) {
+    return null;
+  }
+
+  if (!authenticated) {
+    return null;
+  }
 
   const handleLogout = () => {
     startTransition(async () => {
@@ -55,7 +83,7 @@ export default function AdminBar() {
 
   return (
     // <header> تمام عرض، ثابت و بدون مارجین
-    <header className="fixed inset-x-0 top-0 z-50 h-14 shadow-lg bg-primary/95 backdrop-blur-md">
+    <header className="fixed inset-x-0 top-0 z-50 h-12 shadow-lg bg-primary/95 backdrop-blur-md !translate-y-[15px]">
       <nav className="mx-auto flex h-full w-full items-center justify-between px-6">
         {/* بخش لینک‌های مدیریتی */}
         <div className="flex items-center gap-x-6">
