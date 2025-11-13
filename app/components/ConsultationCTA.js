@@ -1,8 +1,8 @@
-// components/ConsultationCTA.js
 import { Phone, Send } from "lucide-react";
 import Image from "next/image";
 
-const ConsultationCTA = () => {
+// دریافت شماره تماس و آیدی تلگرام به عنوان Props
+const ConsultationCTA = ({ phoneNumber, telegramId }) => {
   return (
     <aside className="my-10 p-6 bg-gradient-to-tr from-muted/50 to-muted/20 dark:from-muted/20 dark:to-background rounded-2xl border-2 border-accent/60 shadow-lg shadow-accent/10 transition-all duration-300 hover:border-accent hover:shadow-xl hover:shadow-accent/20">
       <div className="flex flex-col md:flex-row items-center gap-6">
@@ -36,14 +36,14 @@ const ConsultationCTA = () => {
         {/* بخش دکمه‌ها */}
         <div className="flex-shrink-0 flex flex-col sm:flex-row md:flex-col gap-3 w-full md:w-auto mt-4 md:mt-0">
           <a
-            href="tel:09002450090"
+            href={`tel:${phoneNumber.replace(/ /g, "")}`} // استفاده از prop و حذف فواصل
             className="flex items-center justify-center gap-3 w-full px-6 py-3 bg-accent !text-white rounded-full font-bold text-lg shadow-lg transition-transform hover:scale-105"
           >
             <Phone className="h-5 w-5" />
             <span>تماس فوری</span>
           </a>
           <a
-            href="https://t.me/your_telegram_id"
+            href={`https://t.me/${telegramId}`} // استفاده از prop
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center justify-center gap-3 w-full px-6 py-3 bg-primary dark:bg-primary-light !text-white rounded-full font-semibold transition-transform hover:scale-105"

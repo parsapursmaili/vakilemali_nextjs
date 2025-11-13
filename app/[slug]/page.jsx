@@ -3,20 +3,19 @@ import Image from "next/image";
 import { notFound } from "next/navigation";
 import { Clock, Tag, User } from "lucide-react";
 import parse from "html-react-parser";
+
+// ایمپورت CTAها
 import ConsultationCTA from "@/components/ConsultationCTA";
+import FloatingCTA from "@/components/FloatingCTA";
+
 import { getPostData, getRelatedPosts } from "./post";
 import PostsSlider from "@/components/PostsSlider";
 import PostViews from "@/components/PostViews";
 import PostCommentsSection from "@/components/PostCommentsSection";
 import PostSchemaScript from "./PostSchemaScript";
 
-export async function generateStaticParams() {
-  return [];
-}
+// ========================== Helper Functions ==========================
 
-// =================================== توابع کمکی ===================================
-
-/** پاکسازی URL تصویر برای استفاده در Image و متادیتا */
 function cleanImageUrlPath(src) {
   if (!src) return undefined;
   try {
@@ -30,7 +29,7 @@ function cleanImageUrlPath(src) {
   }
 }
 
-/** پردازش هوشمند محتوای HTML (افزودن تگ <p> به بلوک‌های متنی) */
+/** پاکسازی و تبدیل h1 به h2 برای سئو */
 function processContentSmartly(html) {
   if (!html) return "";
   const protectedBlocksRegex =
@@ -49,18 +48,22 @@ function processContentSmartly(html) {
 
   let finalHtml = processedParts.join("");
   finalHtml = finalHtml.replace(/<p>\s*<\/p>/g, "");
+
+  // ✅ تبدیل h1 به h2
+  finalHtml = finalHtml.replace(/<h1/g, "<h2").replace(/<\/h1>/g, "</h2>");
+
   return finalHtml;
 }
 
-// =================================== متادیتا (فقط تگ‌های Head) ===================================
+// ========================== Metadata ==========================
 
 export async function generateMetadata({ params }) {
   const { post, terms } = await getPostData(params.slug);
   if (!post) notFound();
 
   const postUrl = `/${params.slug}`;
-  const organizationName = "شرکت حقوقی مثال";
-  const organizationUrl = "https://yourdomain.com";
+  const organizationName = "وکیل مالی";
+  const organizationUrl = "https://vakilemali.com"; // ✅ اصلاح دامنه
   const authorName = "مرضیه توانگر";
 
   const description =
@@ -71,21 +74,18 @@ export async function generateMetadata({ params }) {
 
   const image = post.thumbnail
     ? cleanImageUrlPath(post.thumbnail)
-    : "/images/default-social.jpg";
+    : "/logo.png";
   const absoluteImageUrl = `${organizationUrl}${image}`;
 
   return {
-    // تگ‌های سئو پایه
     title: post.title,
-    description: description,
+    description,
     keywords: post.tags?.map((t) => t.name).join(", "),
-    alternates: { canonical: postUrl },
+    alternates: { canonical: `${organizationUrl}${postUrl}` },
     robots: { index: true, follow: true },
-
-    // OpenGraph
     openGraph: {
       title: post.title,
-      description: description,
+      description,
       url: postUrl,
       siteName: organizationName,
       locale: "fa_IR",
@@ -101,31 +101,22 @@ export async function generateMetadata({ params }) {
         author: [authorName],
       },
     },
-
-    // Twitter Card
     twitter: {
       card: "summary_large_image",
       site: "@YourTwitterHandle",
       creator: "@AuthorTwitterHandle",
       title: post.title,
-      description: description,
+      description,
       images: [absoluteImageUrl],
     },
-
-    // Viewport
-    viewport: {
-      width: "device-width",
-      initialScale: 1,
-      maximumScale: 1,
-    },
+    viewport: { width: "device-width", initialScale: 1, maximumScale: 1 },
   };
 }
 
-// =================================== کامپوننت صفحه ===================================
+// ========================== Page Component ==========================
 
 export default async function SinglePostPage({ params }) {
   const slug = params.slug;
-
   const { post, terms } = await getPostData(slug);
   if (!post) notFound();
 
@@ -133,23 +124,19 @@ export default async function SinglePostPage({ params }) {
   const tags = terms.filter((t) => t.type === "tag");
   const primaryCategory = categories[0] || null;
 
-  // فچ پست‌های مرتبط
   const { posts: relatedPosts } = await getRelatedPosts({
     limit: 4,
     excludeId: post.id,
     categoryId: primaryCategory?.id,
   });
 
-  // پردازش محتوا: حذف تگ‌های <img> (تصاویر درون محتوا)
   const processedHtml = processContentSmartly(post.content);
   const content = parse(String(processedHtml || ""), {
-    replace: (node) => {
-      if (node.name === "img") {
-        return <></>;
-      }
-      return node;
-    },
+    replace: (node) => (node.name === "img" ? <></> : node),
   });
+
+  const CTA_PHONE_NUMBER = "۰۹۰۰ ۲۴۵ ۰۰۹۰";
+  const CTA_TELEGRAM_ID = "your_telegram_id";
 
   return (
     <>
@@ -169,30 +156,38 @@ export default async function SinglePostPage({ params }) {
             sm:p-8 p-0
           "
         >
-          {/* تصویر شاخص (Featured Image): به صورت مربع کوچک و متمرکز */}
           {post.thumbnail && (
-            <div className="w-full p-2 sm:p-3 flex justify-center">
+            <div className="w-full p-4 sm:p-6 flex justify-center">
               <div
                 className="
-                  overflow-hidden rounded-2xl border border-muted/30 shadow-sm sm:shadow-md hover:shadow-lg transition-shadow duration-300
-                  w-40 h-40 sm:w-56 sm:h-56 
-                  flex-shrink-0
+                  w-72 h-72 sm:w-80 sm:h-80 flex-shrink-0 relative
+                  rounded-3xl shadow-xl shadow-primary/30 dark:shadow-primary/50
+                  transition-all duration-500 ease-in-out
+                  hover:scale-[1.02] hover:shadow-2xl hover:shadow-primary/50 dark:hover:shadow-primary/70
                 "
               >
-                <Image
-                  src={cleanImageUrlPath(post.thumbnail)}
-                  alt={post.title}
-                  width={400}
-                  height={400}
-                  className="w-full h-full object-cover aspect-square"
-                  priority
-                  sizes="(max-width: 640px) 10rem, 14rem"
-                />
+                <div
+                  className="
+                    w-full h-full rounded-3xl overflow-hidden 
+                    shadow-inner shadow-muted/50 dark:shadow-muted/30
+                    border-4 border-background dark:border-background 
+                    ring-4 ring-primary/40 dark:ring-primary/60
+                  "
+                >
+                  <Image
+                    src={cleanImageUrlPath(post.thumbnail)}
+                    alt={post.title}
+                    width={800}
+                    height={800}
+                    className="w-full h-full object-cover aspect-square"
+                    priority
+                    sizes="(max-width: 640px) 18rem, 20rem"
+                  />
+                </div>
               </div>
             </div>
           )}
 
-          {/* بخش Header: عنوان و متادیتاهای پست */}
           <header className="!px-4 sm:!px-0 pt-6 pb-4 border-b border-muted/30 dark:border-muted/40">
             <h1 className="font-bold text-primary leading-tight mb-4 text-3xl md:text-4xl sm:text-3xl">
               {post.title}
@@ -222,14 +217,10 @@ export default async function SinglePostPage({ params }) {
                   ))}
                 </span>
               )}
-              <PostViews postId={post.id} initialViews={post.view_count} />
             </div>
+            <PostViews postId={post.id} initialViews={post.view_count} />
           </header>
 
-          {/* Call to Action */}
-          <ConsultationCTA />
-
-          {/* محتوای اصلی پست (بدون تصاویر درون متنی) */}
           <section className="text-foreground/90 leading-relaxed text-justify !px-4 sm:!px-0 py-6">
             <div
               className="
@@ -249,7 +240,6 @@ export default async function SinglePostPage({ params }) {
             </div>
           </section>
 
-          {/* بخش Footer: برچسب‌ها */}
           {tags.length > 0 && (
             <footer className="border-t border-muted/30 dark:border-muted/40 !px-4 sm:!px-0 pt-4 pb-6">
               <div className="flex flex-wrap gap-2 items-center">
@@ -268,16 +258,24 @@ export default async function SinglePostPage({ params }) {
           )}
         </article>
 
-        {/* اسلایدر مطالب مرتبط */}
-        <div className=" w-full sm:max-w-4xl sm:mx-auto">
+        <div className="w-full sm:max-w-4xl sm:mx-auto">
+          <ConsultationCTA
+            phoneNumber={CTA_PHONE_NUMBER}
+            telegramId={CTA_TELEGRAM_ID}
+          />
+        </div>
+        <div className="w-full sm:max-w-4xl sm:mx-auto">
           <PostsSlider title="مطالب مرتبط" posts={relatedPosts} />
         </div>
-
-        {/* بخش نظرات */}
-        <div className=" mb-10 w-full px-0 sm:max-w-4xl sm:mx-auto mt-10">
+        <div className="mb-20 w-full px-0 sm:max-w-4xl sm:mx-auto mt-10">
           <PostCommentsSection postId={post.id} postSlug={slug} />
         </div>
       </main>
+
+      <FloatingCTA
+        phoneNumber={CTA_PHONE_NUMBER}
+        telegramId={CTA_TELEGRAM_ID}
+      />
     </>
   );
 }

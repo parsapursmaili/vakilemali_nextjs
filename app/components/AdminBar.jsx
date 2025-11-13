@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useTransition, useEffect, useState } from "react"; // 💡 اضافه شدن useState
+import { useTransition, useEffect, useState } from "react";
 import {
   LayoutDashboard,
   FilePenLine,
@@ -14,18 +14,16 @@ import { logout, isAuthenticated } from "@/actions/auth";
 
 export function AdminBar() {
   const [isPending, startTransition] = useTransition();
-  // 💡 State جدید برای مدیریت وضعیت احراز هویت و بارگذاری
   const [loading, setLoading] = useState(true);
   const [authenticated, setAuthenticated] = useState(false);
 
   useEffect(() => {
-    // 💡 تعریف و اجرای تابع async داخلی
     const checkAuth = async () => {
       try {
-        const auth = await isAuthenticated(); // 💡 فرض بر این است که isAuthenticated یک تابع async است
+        const auth = await isAuthenticated();
         setAuthenticated(auth);
       } catch (error) {
-        console.error("Authentication check failed:", error);
+        // console.error("Authentication check failed:", error); // برای محیط تولید نیازی نیست
         setAuthenticated(false);
       } finally {
         setLoading(false);
@@ -35,11 +33,7 @@ export function AdminBar() {
     checkAuth();
   }, []);
 
-  if (loading) {
-    return null;
-  }
-
-  if (!authenticated) {
+  if (loading || !authenticated) {
     return null;
   }
 
@@ -49,7 +43,6 @@ export function AdminBar() {
     });
   };
 
-  // آیکون ها با رنگ background (روشن) و هاور accent (طلایی)
   const iconBase =
     "h-5 w-5 transition-transform duration-200 text-background group-hover:text-accent group-focus:text-accent";
 
@@ -82,8 +75,8 @@ export function AdminBar() {
   ];
 
   return (
-    // <header> تمام عرض، ثابت و بدون مارجین
-    <header className="fixed inset-x-0 top-0 z-50 h-12 shadow-lg bg-primary/95 backdrop-blur-md !translate-y-[15px]">
+    // <header> حذف شدن کلاس مشکوک !translate-y-[15px] و افزایش z-index
+    <header className="fixed inset-x-0 top-0 z-[60] h-12 shadow-lg bg-primary/95 backdrop-blur-md">
       <nav className="mx-auto flex h-full w-full items-center justify-between px-6">
         {/* بخش لینک‌های مدیریتی */}
         <div className="flex items-center gap-x-6">
@@ -102,13 +95,12 @@ export function AdminBar() {
           ))}
         </div>
 
-        {/* دکمه خروج - اضافه شدن کلاس cursor-pointer */}
+        {/* دکمه خروج */}
         <div className="flex items-center gap-x-3">
           <button
             onClick={handleLogout}
             disabled={isPending}
             title="خروج از حساب کاربری"
-            // **اصلاح کورسور:** اضافه کردن cursor-pointer
             className={`flex items-center gap-x-2 rounded-full px-4 py-2 text-sm font-medium transition-all duration-200 cursor-pointer
                         border-2 border-background text-background hover:bg-background/20 hover:border-accent hover:text-accent 
                         active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed`}

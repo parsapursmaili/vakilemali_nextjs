@@ -1,4 +1,4 @@
-// Header.js (Final Version)
+// Header.js (Final Version - FINAL STICKY FIX V3)
 "use client";
 
 // --- Imports ---
@@ -139,9 +139,9 @@ const Header = () => {
   // --- Render ---
 
   return (
-    <header className="sticky top-0 z-50 bg-background shadow-lg">
-      {/* Section: Top Announcement Bar */}
-      <div className="line-h bg-primary text-background/90 py-2 px-4 text-center border-b border-primary-light/30 flex items-center justify-center">
+    <>
+      {/* Section: Top Announcement Bar (NON-STICKY) */}
+      <div className="line-h w-full bg-primary text-background/90 py-2 px-4 text-center border-b border-primary-light/30 flex items-center justify-center">
         <p className=" font-light tracking-wide text-xs md:text-sm !mb-[-2px]   leading-none">
           بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ • وَيْلٌ لِلْمُطَفِّفِينَ •
           الَّذِينَ إِذَا اكْتَالُوا عَلَى النَّاسِ يَسْتَوْفُونَ • وَإِذَا
@@ -150,8 +150,9 @@ const Header = () => {
         </p>
       </div>
 
-      {/* Section: Main Header */}
-      <div className="border-b border-muted">
+      {/* Section: Main Header (STICKY) */}
+      {/* این تگ header اکنون چسبان است و بعد از نوار آیات شروع به کار می‌کند */}
+      <header className="sticky top-0 z-50 bg-background shadow-lg w-full border-b border-muted">
         <div className="container mx-auto px-4 py-2 flex justify-between items-center gap-4">
           <div className="flex items-center gap-10">
             {/* Logo */}
@@ -210,163 +211,165 @@ const Header = () => {
             </button>
           </div>
         </div>
-      </div>
 
-      {/* Section: Mobile Off-canvas Menu */}
-      <div
-        className={`fixed top-0 right-0 h-full w-full max-w-sm bg-background transition-transform duration-300 ease-in-out transform ${
-          isMenuOpen ? "translate-x-0" : "translate-x-full"
-        } lg:hidden shadow-2xl z-[60]`}
-      >
-        <div className="p-6 h-full flex flex-col">
-          <div className="flex justify-between items-center mb-8 border-b pb-4 border-muted">
-            <h3 className="text-xl font-bold text-primary">منوی موسسه</h3>
-            <button
-              onClick={() => setIsMenuOpen(false)}
-              className="p-2 border border-input-border text-foreground rounded-full hover:bg-muted transition-colors"
-              aria-label="بستن منو"
-            >
-              <X className="h-6 w-6" />
-            </button>
-          </div>
-          <nav className="flex flex-col gap-2 flex-grow">
-            <NavLink href="/" onClick={() => setIsMenuOpen(false)}>
-              صفحه اصلی
-            </NavLink>
-            <NavLink href="/services" onClick={() => setIsMenuOpen(false)}>
-              خدمات
-            </NavLink>
-            <NavLink href="/articles" onClick={() => setIsMenuOpen(false)}>
-              مقالات
-            </NavLink>
-            <NavLink href="/contact" onClick={() => setIsMenuOpen(false)}>
-              تماس با ما
-            </NavLink>
-          </nav>
-          <div className="mt-auto pt-6 border-t border-muted">
-            <p className="text-base font-bold mb-3 text-primary text-center">
-              برای مشاوره فوری تماس بگیرید
-            </p>
-            <a
-              href="tel:09002450090"
-              className="flex items-center justify-center gap-3 py-3 px-6 bg-accent text-white w-full shadow-lg rounded-full font-semibold transition-transform hover:scale-105"
-            >
-              <Phone className="h-5 w-5" />
-              <span className="text-lg font-extrabold tracking-wider">
-                0900 245 0090
-              </span>
-            </a>
-            <p className="text-xs text-center text-foreground/70 mt-3 ">
-              (امکان ارسال پیام در ایتا و تلگرام)
-            </p>
-          </div>
-        </div>
-      </div>
+        {/* --- Off-canvas Menu and Search Modal (Inside the main returned JSX) --- */}
 
-      {/* Section: Full-Screen Search Modal */}
-      <div
-        className={`fixed inset-0 z-[70] transition-opacity duration-300 flex flex-col items-center bg-background/80 backdrop-blur-xl px-2 py-4 sm:px-6 ${
-          isSearchOpen ? "opacity-100 visible" : "opacity-0 invisible"
-        }`}
-        onClick={() => setIsSearchOpen(false)}
-      >
+        {/* Section: Mobile Off-canvas Menu */}
         <div
-          className={`w-full max-w-3xl flex flex-col h-full transition-all duration-500 ease-in-out ${
-            isSearchOpen
-              ? "opacity-100 translate-y-0"
-              : "opacity-0 -translate-y-5"
-          }`}
-          onClick={(e) => e.stopPropagation()}
+          className={`fixed top-0 right-0 h-full w-full max-w-sm bg-background transition-transform duration-300 ease-in-out transform ${
+            isMenuOpen ? "translate-x-0" : "translate-x-full"
+          } lg:hidden shadow-2xl z-[60]`}
         >
-          {/* Search Header */}
-          <div className="flex-shrink-0">
-            <h2 className="text-3xl md:text-4xl font-black mb-6 text-center bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent">
-              در مقالات ما جستجو کنید
-            </h2>
-            <div className="relative">
-              <input
-                type="text"
-                placeholder="مثلا: طلاق توافقی، ثبت شرکت و..."
-                className="w-full pl-16 pr-6 py-4 text-base sm:text-lg border-2 border-muted bg-background/90 focus:ring-2 focus:ring-accent focus:border-accent rounded-full shadow-lg transition-all"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                autoFocus
-              />
-              <div className="absolute left-4 top-1/2 -translate-y-1/2 p-2.5 text-primary">
-                {isDebouncing ? (
-                  <LoaderCircle className="h-6 w-6 animate-spin text-accent" />
-                ) : (
-                  <Search className="h-6 w-6" />
-                )}
-              </div>
+          <div className="p-6 h-full flex flex-col">
+            <div className="flex justify-between items-center mb-8 border-b pb-4 border-muted">
+              <h3 className="text-xl font-bold text-primary">منوی موسسه</h3>
+              <button
+                onClick={() => setIsMenuOpen(false)}
+                className="p-2 border border-input-border text-foreground rounded-full hover:bg-muted transition-colors"
+                aria-label="بستن منو"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+            <nav className="flex flex-col gap-2 flex-grow">
+              <NavLink href="/" onClick={() => setIsMenuOpen(false)}>
+                صفحه اصلی
+              </NavLink>
+              <NavLink href="/services" onClick={() => setIsMenuOpen(false)}>
+                خدمات
+              </NavLink>
+              <NavLink href="/articles" onClick={() => setIsMenuOpen(false)}>
+                مقالات
+              </NavLink>
+              <NavLink href="/contact" onClick={() => setIsMenuOpen(false)}>
+                تماس با ما
+              </NavLink>
+            </nav>
+            <div className="mt-auto pt-6 border-t border-muted">
+              <p className="text-base font-bold mb-3 text-primary text-center">
+                برای مشاوره فوری تماس بگیرید
+              </p>
+              <a
+                href="tel:09002450090"
+                className="flex items-center justify-center gap-3 py-3 px-6 bg-accent text-white w-full shadow-lg rounded-full font-semibold transition-transform hover:scale-105"
+              >
+                <Phone className="h-5 w-5" />
+                <span className="text-lg font-extrabold tracking-wider">
+                  0900 245 0090
+                </span>
+              </a>
+              <p className="text-xs text-center text-foreground/70 mt-3 ">
+                (امکان ارسال پیام در ایتا و تلگرام)
+              </p>
             </div>
           </div>
+        </div>
 
-          {/* Search Results Container */}
-          <div className="mt-6 flex-grow overflow-y-auto pr-2 custom-scrollbar">
-            {searchResults.length > 0 ? (
-              <div className="space-y-3 pb-4">
-                {searchResults.map((post, index) => {
-                  const isLastElement = searchResults.length === index + 1;
-                  return (
-                    <Link
-                      href={`/articles/${post.slug}`}
-                      key={post.id}
-                      onClick={() => setIsSearchOpen(false)}
-                      ref={isLastElement ? lastPostElementRef : null}
-                      className="group flex items-center gap-3 sm:gap-4 p-3 sm:p-4 bg-background/70 rounded-2xl border border-muted transition-all duration-300 ease-in-out hover:border-accent hover:shadow-lg hover:shadow-accent/20 hover:-translate-y-1 hover:!translate-x-0"
-                    >
-                      <Image
-                        src={`/${post.thumbnail}`}
-                        alt={post.title}
-                        width={80}
-                        height={80}
-                        className="rounded-lg object-cover w-16 h-16 sm:w-20 sm:h-20 flex-shrink-0 border border-muted/50"
-                      />
-                      <div className="overflow-hidden flex-grow">
-                        <h3 className="!text-base !font-semibold text-primary transition-colors group-hover:text-accent">
-                          {post.title}
-                        </h3>
-                        <p className="text-sm text-foreground/70 mt-1.5 line-clamp-2">
-                          {post.excerpt}
-                        </p>
-                      </div>
-                      <ArrowLeft className="h-6 w-6 mr-2 text-muted/80 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300" />
-                    </Link>
-                  );
-                })}
+        {/* Section: Full-Screen Search Modal */}
+        <div
+          className={`fixed inset-0 z-[70] transition-opacity duration-300 flex flex-col items-center bg-background/80 backdrop-blur-xl px-2 py-4 sm:px-6 ${
+            isSearchOpen ? "opacity-100 visible" : "opacity-0 invisible"
+          }`}
+          onClick={() => setIsSearchOpen(false)}
+        >
+          <div
+            className={`w-full max-w-3xl flex flex-col h-full transition-all duration-500 ease-in-out ${
+              isSearchOpen
+                ? "opacity-100 translate-y-0"
+                : "opacity-0 -translate-y-5"
+            }`}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Search Header */}
+            <div className="flex-shrink-0">
+              <h2 className="text-3xl md:text-4xl font-black mb-6 text-center bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent">
+                در مقالات ما جستجو کنید
+              </h2>
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="مثلا: طلاق توافقی، ثبت شرکت و..."
+                  className="w-full pl-16 pr-6 py-4 text-base sm:text-lg border-2 border-muted bg-background/90 focus:ring-2 focus:ring-accent focus:border-accent rounded-full shadow-lg transition-all"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  autoFocus
+                />
+                <div className="absolute left-4 top-1/2 -translate-y-1/2 p-2.5 text-primary">
+                  {isDebouncing ? (
+                    <LoaderCircle className="h-6 w-6 animate-spin text-accent" />
+                  ) : (
+                    <Search className="h-6 w-6" />
+                  )}
+                </div>
               </div>
-            ) : (
-              // Empty State (when no results are found)
-              <div className="flex flex-col items-center justify-center h-full text-center">
-                {!isLoading && !isDebouncing && searchQuery.length > 1 && (
-                  <div className="flex flex-col items-center gap-4">
-                    <SearchX className="h-16 w-16 text-muted" />
-                    <p className="text-xl font-semibold text-foreground">
-                      نتیجه‌ای یافت نشد
-                    </p>
-                    <p className="text-foreground/70 max-w-xs">
-                      برای عبارت «{searchQuery}» مقاله‌ای پیدا نکردیم. لطفا
-                      عبارت دیگری را امتحان کنید.
-                    </p>
-                  </div>
-                )}
-              </div>
-            )}
+            </div>
 
-            {/* Loading Indicator */}
-            {isLoading && (
-              <div className="flex items-center justify-center gap-3 py-6">
-                <LoaderCircle className="h-7 w-7 text-primary animate-spin" />
-                <p className="text-lg text-foreground/80">
-                  در حال بارگذاری نتایج...
-                </p>
-              </div>
-            )}
+            {/* Search Results Container */}
+            <div className="mt-6 flex-grow overflow-y-auto pr-2 custom-scrollbar">
+              {searchResults.length > 0 ? (
+                <div className="space-y-3 pb-4">
+                  {searchResults.map((post, index) => {
+                    const isLastElement = searchResults.length === index + 1;
+                    return (
+                      <Link
+                        href={`/articles/${post.slug}`}
+                        key={post.id}
+                        onClick={() => setIsSearchOpen(false)}
+                        ref={isLastElement ? lastPostElementRef : null}
+                        className="group flex items-center gap-3 sm:gap-4 p-3 sm:p-4 bg-background/70 rounded-2xl border border-muted transition-all duration-300 ease-in-out hover:border-accent hover:shadow-lg hover:shadow-accent/20 hover:-translate-y-1 hover:!translate-x-0"
+                      >
+                        <Image
+                          src={`/${post.thumbnail}`}
+                          alt={post.title}
+                          width={80}
+                          height={80}
+                          className="rounded-lg object-cover w-16 h-16 sm:w-20 sm:h-20 flex-shrink-0 border border-muted/50"
+                        />
+                        <div className="overflow-hidden flex-grow">
+                          <h3 className="!text-base !font-semibold text-primary transition-colors group-hover:text-accent">
+                            {post.title}
+                          </h3>
+                          <p className="text-sm text-foreground/70 mt-1.5 line-clamp-2">
+                            {post.excerpt}
+                          </p>
+                        </div>
+                        <ArrowLeft className="h-6 w-6 mr-2 text-muted/80 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300" />
+                      </Link>
+                    );
+                  })}
+                </div>
+              ) : (
+                // Empty State (when no results are found)
+                <div className="flex flex-col items-center justify-center h-full text-center">
+                  {!isLoading && !isDebouncing && searchQuery.length > 1 && (
+                    <div className="flex flex-col items-center gap-4">
+                      <SearchX className="h-16 w-16 text-muted" />
+                      <p className="text-xl font-semibold text-foreground">
+                        نتیجه‌ای یافت نشد
+                      </p>
+                      <p className="text-foreground/70 max-w-xs">
+                        برای عبارت «{searchQuery}» مقاله‌ای پیدا نکردیم. لطفا
+                        عبارت دیگری را امتحان کنید.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Loading Indicator */}
+              {isLoading && (
+                <div className="flex items-center justify-center gap-3 py-6">
+                  <LoaderCircle className="h-7 w-7 text-primary animate-spin" />
+                  <p className="text-lg text-foreground/80">
+                    در حال بارگذاری نتایج...
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
         </div>
-      </div>
-    </header>
+      </header>
+    </>
   );
 };
 

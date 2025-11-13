@@ -33,23 +33,52 @@ export default function PostsSlider({ posts, title }) {
           "
         >
           {posts.map((post) => (
-            // تغییر: به هر آیتم یک عرض پایه می‌دهیم تا Flexbox بتواند چیدمان را مدیریت کند
             <Link
               key={post.id}
               href={`/${post.slug}`}
-              // این عرض‌ها معادل minmax(150px, ...) و minmax(180px, ...) در گرید قبلی هستند
               className="group flex flex-col items-start gap-3 w-[150px] sm:w-[180px]"
             >
-              {/* کانتینر تصویر (بدون تغییر) */}
+              {/* کانتینر تصویر (با منطق مدیریت تصویر شاخص نبودن) */}
               <div className="relative w-full overflow-hidden rounded-xl shadow-md transition-shadow duration-300 group-hover:shadow-xl">
                 <div className="aspect-square">
-                  <Image
-                    src={cleanImageUrlPath(post.thumbnail)}
-                    alt={post.title}
-                    fill
-                    className="object-cover transition-transform duration-500 group-hover:scale-110"
-                    sizes="(max-width: 768px) 30vw, (max-width: 1200px) 15vw, 180px"
-                  />
+                  {post.thumbnail ? (
+                    <Image
+                      src={cleanImageUrlPath(post.thumbnail)}
+                      alt={post.title}
+                      fill
+                      className="object-cover transition-transform duration-500 group-hover:scale-110"
+                      sizes="(max-width: 768px) 30vw, (max-width: 1200px) 15vw, 180px"
+                    />
+                  ) : (
+                    // باکس جایگزین جذاب برای زمانی که تصویر شاخص وجود ندارد
+                    <div
+                      className="
+                        w-full h-full 
+                        bg-gray-100 dark:bg-gray-800 
+                        flex items-center justify-center
+                        text-gray-400 dark:text-gray-600
+                        transition-colors duration-300
+                        group-hover:bg-gray-200 dark:group-hover:bg-gray-700
+                      "
+                      title="تصویر یافت نشد"
+                    >
+                      {/* آیکون ساده عکس برای نمایش بصری */}
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-1/3 w-1/3 opacity-70"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        strokeWidth={1.5}
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-12 5h8a2 2 0 002-2v-8a2 2 0 00-2-2H8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                        />
+                      </svg>
+                    </div>
+                  )}
                 </div>
               </div>
 

@@ -1,18 +1,14 @@
-import { redirect } from "next/navigation"; // ۱. وارد کردن تابع redirect
+import { redirect } from "next/navigation";
 import PostsSlider from "@/components/PostsSlider";
-// ۲. وارد کردن تابع جدید از فایل اکشن
 import {
   getLatestPosts,
   getPopularPosts,
   findPostSlugById,
 } from "./actions/main-Page";
 
-// ۳. دریافت searchParams به عنوان پراپ
 export default async function HomePage({ searchParams }) {
-  // ۴. منطق اصلی برای ریدایرکت
-  const postId = searchParams?.p;
+  const postId = (await searchParams)?.p;
 
-  // فقط در صورتی که پارامتر p وجود داشته باشد و یک عدد معتبر باشد، این بلوک اجرا می‌شود
   if (postId && !isNaN(postId)) {
     const post = await findPostSlugById(Number(postId));
 

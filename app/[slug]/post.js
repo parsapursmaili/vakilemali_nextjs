@@ -6,7 +6,6 @@ import { cookies } from "next/headers";
 export async function getPostData(slug) {
   try {
     const slug2 = decodeURIComponent(slug);
-    console.log("slug: ", slug2);
     const [rows] = await db.query(
       // تغییر: کوئری برای slug به جای id بهتر است چون از URL می‌آید
       "SELECT id, title, slug, content, excerpt, thumbnail, created_at, view_count FROM posts WHERE slug = ? AND status = 'published'",
