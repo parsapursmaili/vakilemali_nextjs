@@ -136,7 +136,7 @@ export default async function SinglePostPage({ params }) {
   });
 
   const CTA_PHONE_NUMBER = "۰۹۰۰ ۲۴۵ ۰۰۹۰";
-  const CTA_TELEGRAM_ID = "your_telegram_id";
+  const CTA_TELEGRAM_ID = "vakile_mali";
 
   return (
     <>
@@ -208,8 +208,8 @@ export default async function SinglePostPage({ params }) {
                   <Tag className="w-4 h-4 text-secondary" />
                   {categories.map((cat, i) => (
                     <Link
-                      key={cat.slug}
-                      href={`/category/${cat.slug}`}
+                      key={cat.id} // ✅ تغییر: استفاده از cat.id به عنوان key
+                      href={`/articles?category=${cat.id}`} // ✅ تغییر: لینک به صفحه آرشیو مقالات با category ID
                       className="text-primary hover:underline"
                     >
                       {cat.name}

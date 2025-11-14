@@ -12,7 +12,8 @@ export default function FilterControls({ categories }) {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
 
-  const currentCategorySlug = searchParams.get("category") || "";
+  // ✅ تغییر: از categorySlug به categoryId تغییر نام داده شد و مقدار آن را از پارامتر 'category' می خواند
+  const currentCategoryId = searchParams.get("category") || "";
   const currentSort = searchParams.get("sort") || "newest";
 
   const handleFilterChange = useCallback(
@@ -33,8 +34,9 @@ export default function FilterControls({ categories }) {
     cat.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  // ✅ تغییر: جستجوی نام دسته‌بندی انتخاب‌شده بر اساس ID
   const selectedCategoryName =
-    categories.find((c) => c.slug === currentCategorySlug)?.name ||
+    categories.find((c) => String(c.id) === currentCategoryId)?.name ||
     "همه دسته‌بندی‌ها";
 
   return (
@@ -80,7 +82,8 @@ export default function FilterControls({ categories }) {
                 <li
                   key={cat.id}
                   onClick={() => {
-                    handleFilterChange("category", cat.slug);
+                    // ✅ تغییر: ارسال cat.id به جای cat.slug
+                    handleFilterChange("category", cat.id);
                     setIsDropdownOpen(false);
                   }}
                   className="px-3 py-1.5 text-sm hover:bg-muted rounded-md cursor-pointer"

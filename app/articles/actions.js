@@ -1,5 +1,3 @@
-// app/articles/actions.js
-
 "use server";
 
 import { db } from "@/lib/db/mysql";
@@ -11,6 +9,7 @@ const POSTS_PER_PAGE = 24;
  */
 export async function getCategories() {
   try {
+    // ID, name و slug برای استفاده در client و FilterControls برگردانده می‌شود.
     const [categories] = await db.query(
       "SELECT id, name, slug FROM terms WHERE type = 'category' ORDER BY name ASC"
     );
@@ -27,7 +26,7 @@ export async function getCategories() {
 export async function getPaginatedPosts({
   page = 1,
   sortBy = "newest", // 'newest', 'popular', 'random'
-  categorySlug = null,
+  categoryId = null, // ✅ تغییر: پذیرش categoryId به جای categorySlug
 }) {
   try {
     const offset = (page - 1) * POSTS_PER_PAGE;
@@ -46,7 +45,7 @@ export async function getPaginatedPosts({
     let countQuery = `SELECT COUNT(DISTINCT p.id) as total FROM posts p`;
 
     // --- افزودن JOIN در صورت فیلتر بر اساس دسته‌بندی ---
-    if (categorySlug) {
+    if (categoryId) {
       const joinClause = `
         JOIN post_terms pt ON p.id = pt.post_id
         JOIN terms t ON pt.term_id = t.id
@@ -57,10 +56,10 @@ export async function getPaginatedPosts({
 
     // --- افزودن شرط WHERE ---
     let whereClause = ` WHERE p.status = 'published'`;
-    if (categorySlug) {
-      whereClause += ` AND t.slug = ? AND t.type = 'category'`;
-      params.push(categorySlug);
-      countParams.push(categorySlug);
+    if (categoryId) {
+      whereClause += ` AND t.id = ? AND t.type = 'category'`; // ✅ تغییر: فیلتر بر اساس t.id
+      params.push(categoryId);
+      countParams.push(categoryId);
     }
     query += whereClause;
     countQuery += whereClause;
