@@ -1,5 +1,5 @@
-const mysql = require("mysql2/promise");
-const { URL } = require("url");
+import mysql from "mysql2/promise"; // تغییر require به import
+import { URL } from "node:url"; // تغییر require به import و استفاده از پیشوند node: برای ماژول‌های داخلی
 
 async function migrateData() {
   let oldDb, newDb;
@@ -45,6 +45,7 @@ async function migrateData() {
       let relativeThumbnailPath = null;
       if (post.thumbnail_url) {
         try {
+          // توجه: اگر post.thumbnail_url یک رشته کامل URL نباشد، این قسمت خطا می‌دهد.
           const urlObj = new URL(post.thumbnail_url);
           const uploadDirPattern = "/wp-content/uploads/";
           const startIndex = urlObj.pathname.indexOf(uploadDirPattern);
@@ -57,7 +58,19 @@ async function migrateData() {
             relativeThumbnailPath = decodeURIComponent(filePath);
           }
         } catch (e) {
-          console.error(`Error parsing URL for post ID ${post.ID}:`, e.message);
+          // اگر URL معتبر نباشد (مثلاً فقط یک مسیر نسبی باشد)، اینجا خطا مدیریت می‌شود.
+          // اگر مطمئن هستید که همیشه یک URL کامل است، این خطا را نادیده بگیرید.
+          // در غیر این صورت، می‌توانید فرض کنید مسیر ورودی، مسیر آپلود است:
+          if (!post.thumbnail_url.startsWith("http")) {
+            relativeThumbnailPath = decodeURIComponent(
+              post.thumbnail_url.replace(/.*\/uploads\//, "")
+            );
+          } else {
+            console.error(
+              `Error parsing URL for post ID ${post.ID}:`,
+              e.message
+            );
+          }
         }
       }
 

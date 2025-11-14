@@ -36,7 +36,10 @@ export default function PostsSlider({ posts, title }) {
             <Link
               key={post.id}
               href={`/${post.slug}`}
-              className="group flex flex-col items-start gap-3 w-[150px] sm:w-[180px]"
+              // **تغییر اعمال شده برای تضمین وجود حداقل ۲ آیتم در هر خط:**
+              // w-[calc(50%-10px)]: تضمین می‌کند که عرض آیتم کمتر از نصف فضای موجود باشد (برای جا دادن آیتم دوم و فاصله).
+              // max-w-[150px]: اندازه اصلی w-[150px] را به عنوان حداکثر عرض در موبایل حفظ می‌کند.
+              className="group flex flex-col items-start gap-3 w-[calc(50%-10px)] max-w-[150px] sm:w-[180px]"
             >
               {/* کانتینر تصویر (با منطق مدیریت تصویر شاخص نبودن) */}
               <div className="relative w-full overflow-hidden rounded-xl shadow-md transition-shadow duration-300 group-hover:shadow-xl">

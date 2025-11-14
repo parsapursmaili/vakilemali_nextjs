@@ -114,12 +114,14 @@ body {
 
 /* استایل‌های پایه برای لینک‌ها */
 a {
-  color: var(--primary);
+  /* ✅ تغییر رنگ لینک به Accent برای وضوح بیشتر */
+  color: var(--accent);
   text-decoration: none;
   transition: color 0.3s ease, transform 0.2s ease;
 }
 a:hover {
-  color: var(--accent);
+  /* ✅ تغییر رنگ هاور به Primary */
+  color: var(--primary);
   transform: translateX(-2px);
 }
 

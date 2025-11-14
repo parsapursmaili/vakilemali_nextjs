@@ -188,12 +188,13 @@ export default async function SinglePostPage({ params }) {
             </div>
           )}
 
-          <header className="!px-4 sm:!px-0 pt-6 pb-4 border-b border-muted/30 dark:border-muted/40">
+          {/* ✅ تغییر !px-4 به !px-3 برای کاهش پدینگ موبایل در header */}
+          <header className="!px-3 sm:!px-0 pt-6 pb-4 border-b border-muted/30 dark:border-muted/40">
             <h1 className="font-bold text-primary leading-tight mb-4 text-3xl md:text-4xl sm:text-3xl">
               {post.title}
             </h1>
 
-            <div className="flex flex-wrap items-center gap-3 text-sm text-foreground/70 border-t pt-3">
+            <div className="flex flex-wrap items-center gap-3 text-sm text-foreground/80 border-t pt-3">
               <span className="flex items-center gap-1">
                 <User className="w-4 h-4 text-info" /> نوشته‌ی{" "}
                 <strong className="text-foreground/90">مرضیه توانگر</strong>
@@ -221,7 +222,8 @@ export default async function SinglePostPage({ params }) {
             <PostViews postId={post.id} initialViews={post.view_count} />
           </header>
 
-          <section className="text-foreground/90 leading-relaxed text-justify !px-4 sm:!px-0 py-6">
+          {/* ✅ تغییر !px-4 به !px-3 برای کاهش پدینگ موبایل در content section */}
+          <section className="text-foreground leading-relaxed text-justify !px-3 sm:!px-0 py-6">
             <div
               className="
                 prose dark:prose-invert prose-blue rtl
@@ -241,7 +243,8 @@ export default async function SinglePostPage({ params }) {
           </section>
 
           {tags.length > 0 && (
-            <footer className="border-t border-muted/30 dark:border-muted/40 !px-4 sm:!px-0 pt-4 pb-6">
+            /* ✅ تغییر !px-4 به !px-3 برای کاهش پدینگ موبایل در footer */
+            <footer className="border-t border-muted/30 dark:border-muted/40 !px-3 sm:!px-0 pt-4 pb-6">
               <div className="flex flex-wrap gap-2 items-center">
                 <span className="font-semibold">برچسب‌ها:</span>
                 {tags.map((tag) => (

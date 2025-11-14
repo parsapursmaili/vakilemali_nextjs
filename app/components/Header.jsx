@@ -1,4 +1,4 @@
-// Header.js (Final Version - FINAL STICKY FIX V3)
+// Header.js (Final Version - NON-STICKY FIX)
 "use client";
 
 // --- Imports ---
@@ -30,7 +30,8 @@ const NavLink = ({ href, children, onClick }) => (
   <Link
     href={href}
     onClick={onClick}
-    className=" text-foreground text-base font-semibold hover:text-accent transition-colors py-2 lg-py-0 block lg:inline relative after:content-[''] after:absolute after:bottom-0 after:right-0 after:w-0 after:h-[2px] after:bg-accent hover:after:w-full after:transition-all after:duration-300"
+    // FIX: Changed 'lg-py-0' to 'lg:py-0' for correct Tailwind usage
+    className=" text-foreground text-base font-semibold hover:text-accent transition-colors py-2 lg:py-0 block lg:inline relative after:content-[''] after:absolute after:bottom-0 after:right-0 after:w-0 after:h-[2px] after:bg-accent hover:after:w-full after:transition-all after:duration-300"
   >
     {children}
   </Link>
@@ -150,9 +151,9 @@ const Header = () => {
         </p>
       </div>
 
-      {/* Section: Main Header (STICKY) */}
-      {/* این تگ header اکنون چسبان است و بعد از نوار آیات شروع به کار می‌کند */}
-      <header className="sticky top-0 z-50 bg-background shadow-lg w-full border-b border-muted">
+      {/* Section: Main Header (NON-STICKY) */}
+      {/* کلاس‌های 'sticky top-0' حذف شدند تا هدر چسبان نباشد */}
+      <header className="bg-background shadow-lg w-full border-b border-muted z-30">
         <div className="container mx-auto px-4 py-2 flex justify-between items-center gap-4">
           <div className="flex items-center gap-10">
             {/* Logo */}
@@ -167,6 +168,7 @@ const Header = () => {
                 width={80}
                 height={80}
                 priority
+                className="w-16 h-16 sm:w-20 sm:h-20" // Responsive Image Size
               />
             </Link>
             {/* Desktop Navigation */}
@@ -183,31 +185,32 @@ const Header = () => {
             <div className=" flex flex-col items-end p-2 sm:p-3 bg-gradient-to-br from-accent/10 to-accent/5 rounded-xl border border-accent/60 transition-all duration-300 shadow-md hover:shadow-lg hover:shadow-accent/20 hover:border-accent sm:mt-1">
               <a
                 href="tel:09002450090"
-                className="flex items-center gap-2 text-primary font-extrabold text-base sm:text-xl md:text-2xl leading-none hover:text-accent transition-colors"
+                className="flex items-center gap-2 text-primary font-extrabold text-sm sm:text-lg md:text-xl leading-none hover:text-accent transition-colors" // Adjusted text size
               >
-                <Phone className=" h-4 w-4 sm:h-6 sm:w-6 text-accent " />
+                <Phone className=" h-4 w-4 sm:h-5 sm:w-5 text-accent " />{" "}
+                {/* Adjusted icon size */}
                 <span className="![direction:ltr]">0900 245 0090</span>
               </a>
-              <p className="hidden sm:flex text-xs font-bold text-secondary items-center ">
-                <Sparkles className="h-3.5 w-3.5 text-accent" />
+              <p className="hidden sm:flex text-xs font-bold text-secondary items-center mt-1">
+                <Sparkles className="h-3 w-3 text-accent" />
                 مشاوره فوری (ایتا و تلگرام)
               </p>
             </div>
             {/* Search Toggle Button */}
             <button
               onClick={() => setIsSearchOpen(true)}
-              className="p-2.5 border border-input-border text-foreground rounded-full hover:bg-muted transition-colors"
+              className="p-2 border border-input-border text-foreground rounded-full hover:bg-muted transition-colors" // Reduced padding slightly
               aria-label="جستجو"
             >
-              <Search className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
+              <Search className="h-5 w-5 text-primary" /> {/* Fixed size */}
             </button>
             {/* Mobile Menu Toggle Button */}
             <button
               onClick={() => setIsMenuOpen(true)}
-              className="p-2.5 border border-primary text-primary rounded-full lg:hidden hover:bg-primary/10 transition-colors"
+              className="p-2 border border-primary text-primary rounded-full lg:hidden hover:bg-primary/10 transition-colors" // Reduced padding slightly
               aria-label="منوی اصلی"
             >
-              <Menu className="h-5 w-5" />
+              <Menu className="h-5 w-5" /> {/* Fixed size */}
             </button>
           </div>
         </div>
@@ -216,7 +219,8 @@ const Header = () => {
 
         {/* Section: Mobile Off-canvas Menu */}
         <div
-          className={`fixed top-0 right-0 h-full w-full max-w-sm bg-background transition-transform duration-300 ease-in-out transform ${
+          className={`fixed top-0 right-0 h-full w-full max-w-xs sm:max-w-sm bg-background transition-transform duration-300 ease-in-out transform ${
+            // Adjusted max-width for better responsiveness
             isMenuOpen ? "translate-x-0" : "translate-x-full"
           } lg:hidden shadow-2xl z-[60]`}
         >
