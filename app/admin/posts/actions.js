@@ -147,6 +147,7 @@ export async function updatePost(postId, formData) {
     }
 
     await connection.commit();
+    // revalidatePath برای اطمینان از به روز رسانی لیست ادمین و صفحه عمومی پست
     revalidatePath("/admin/posts");
     revalidatePath(`/${slug}`);
 
@@ -160,7 +161,7 @@ export async function updatePost(postId, formData) {
   }
 }
 
-// **اصلاح شده:** ایجاد پست (رفع باگ approved)
+// **اصلاح شده:** ایجاد پست (رفع باگ approved و اضافه شدن revalidatePath برای صفحه عمومی)
 export async function createPost(formData) {
   const connection = await db.getConnection();
   try {
@@ -196,7 +197,10 @@ export async function createPost(formData) {
     }
 
     await connection.commit();
+    // revalidatePath برای اطمینان از به روز رسانی لیست ادمین
     revalidatePath("/admin/posts");
+    // **تغییر کلیدی:** revalidatePath برای اطمینان از به روز رسانی صفحه عمومی پست جدید
+    revalidatePath(`/${slug}`);
 
     return {
       success: true,
@@ -250,6 +254,9 @@ export async function quickEditPost(formData) {
 
     await connection.commit();
     revalidatePath("/admin/posts");
+    // اضافه کردن revalidatePath برای صفحه عمومی پست در quickEdit
+    revalidatePath(`/${slug}`);
+
     return { success: true, message: "ویرایش سریع با موفقیت انجام شد." };
   } catch (error) {
     await connection.rollback();
@@ -289,6 +296,7 @@ export async function updateCommentStatus(commentId, status) {
       status,
       commentId,
     ]);
+    // revalidatePath برای به روز رسانی کامپوننت سرور EditPostPage
     revalidatePath("/admin/posts/[id]", "page");
     return { success: true, message: "وضعیت دیدگاه تغییر کرد." };
   } catch (error) {

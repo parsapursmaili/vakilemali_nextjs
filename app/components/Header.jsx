@@ -316,7 +316,7 @@ const Header = () => {
                     const isLastElement = searchResults.length === index + 1;
                     return (
                       <Link
-                        href={`/articles/${post.slug}`}
+                        href={`/${post.slug}`}
                         key={post.id}
                         onClick={() => setIsSearchOpen(false)}
                         ref={isLastElement ? lastPostElementRef : null}

@@ -192,7 +192,8 @@ export default function StatisticsClient({ initialData }) {
               انتخاب بازه
             </button>
             {isCustomRangeOpen && (
-              <div className="absolute top-full left-0 mt-2 z-10 bg-[var(--background)] border border-[var(--muted)] rounded-lg shadow-lg p-4 w-72 space-y-3">
+              // تنها تغییر: right-0 به جای left-0 برای نمایش صحیح در RTL موبایل
+              <div className="absolute top-full right-0 mt-2 z-10 bg-[var(--background)] border border-[var(--muted)] rounded-lg shadow-lg p-4 w-72 space-y-3">
                 <p className="text-sm text-center">
                   تاریخ امروز:{" "}
                   <span className="font-semibold">{todayJalali}</span>

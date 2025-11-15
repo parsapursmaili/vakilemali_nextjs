@@ -54,6 +54,7 @@ export default function PostChartModal({ post, isOpen, onClose }) {
       onClick={onClose}
     >
       <div
+        // کلاس‌های ریسپانسیو برای عرض: w-11/12 (موبایل) تا max-w-4xl (دسکتاپ)
         className="bg-[var(--background)] rounded-xl shadow-2xl p-6 w-11/12 md:w-3/4 lg:w-2/3 max-w-4xl transform transition-all"
         onClick={(e) => e.stopPropagation()}
       >
@@ -74,6 +75,8 @@ export default function PostChartModal({ post, isOpen, onClose }) {
           </button>
         </div>
         <div className="h-80">
+          {" "}
+          {/* ارتفاع ثابت برای نمودار که در موبایل قابل قبول است */}
           {isLoading ? (
             <ChartLoader />
           ) : chartData.length > 0 ? (
