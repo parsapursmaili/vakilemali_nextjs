@@ -204,7 +204,7 @@ export default function PostEditClientUI({
   };
 
   const handleCopyLink = () => {
-    const link = `http://localhost:3000/?p=${initialPost.id}`;
+    const link = `https://vakilemali.com/?p=${initialPost.id}`;
     navigator.clipboard.writeText(link).then(
       () => {
         setIsCopied(true);
@@ -355,7 +355,7 @@ export default function PostEditClientUI({
                   لینک کوتاه:
                 </span>
                 <code className="text-primary-light dark:text-sky-400 truncate">
-                  {`http://localhost:3000/?p=${initialPost.id}`}
+                  {`https://vakilemali.com/?p=${initialPost.id}`}
                 </code>
               </div>
               <div className="flex items-center gap-2 flex-shrink-0">

@@ -55,7 +55,7 @@ export async function getPaginatedPosts({
     }
 
     // --- افزودن شرط WHERE ---
-    let whereClause = ` WHERE p.status = 'published'`;
+    let whereClause = ` WHERE p.status = 'published' and p.type = 'post'`;
     if (categoryId) {
       whereClause += ` AND t.id = ? AND t.type = 'category'`; // ✅ تغییر: فیلتر بر اساس t.id
       params.push(categoryId);
