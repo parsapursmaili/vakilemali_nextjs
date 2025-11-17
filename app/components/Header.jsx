@@ -1,4 +1,3 @@
-// Header.js (Final Version - NON-STICKY FIX)
 "use client";
 
 // --- Imports ---
@@ -19,19 +18,11 @@ import { searchPosts } from "@/actions/searchActions";
 
 // --- Sub-components ---
 
-/**
- * کامپوننت لینک‌های ناوبری با افکت هاور
- * @param {object} props - پراپرتی‌های کامپوننت
- * @param {string} props.href - آدرس لینک
- * @param {React.ReactNode} props.children - محتوای لینک
- * @param {Function} props.onClick - تابع برای رویداد کلیک
- */
-const NavLink = ({ href, children, onClick }) => (
+const NavLink = ({ href, children, onClick, className = "" }) => (
   <Link
     href={href}
     onClick={onClick}
-    // FIX: Changed 'lg-py-0' to 'lg:py-0' for correct Tailwind usage
-    className=" text-foreground text-base font-semibold hover:text-accent transition-colors py-2 lg:py-0 block lg:inline relative after:content-[''] after:absolute after:bottom-0 after:right-0 after:w-0 after:h-[2px] after:bg-accent hover:after:w-full after:transition-all after:duration-300"
+    className={`text-foreground text-base font-semibold hover:text-accent transition-colors py-2 lg:py-0 block lg:inline relative after:content-[''] after:absolute after:bottom-0 after:right-0 after:w-0 after:h-[2px] after:bg-accent hover:after:w-full after:transition-all after:duration-300 ${className}`}
   >
     {children}
   </Link>
@@ -70,11 +61,6 @@ const Header = () => {
 
   // --- Data Fetching Logic ---
 
-  /**
-   * بارگذاری نتایج جستجو بر اساس کوئری و شماره صفحه
-   * @param {string} query - عبارت جستجو شده
-   * @param {number} pageNum - شماره صفحه برای بارگذاری
-   */
   const loadSearchResults = async (query, pageNum) => {
     if (!query) return;
     setIsLoading(true);
@@ -82,7 +68,7 @@ const Header = () => {
     setSearchResults((prev) =>
       pageNum === 1 ? newPosts : [...prev, ...newPosts]
     );
-    setHasMore(newPosts.length === 20); // فرض بر اینکه هر صفحه 20 آیتم دارد
+    setHasMore(newPosts.length === 20);
     setIsLoading(false);
     setIsDebouncing(false);
   };
@@ -98,7 +84,7 @@ const Header = () => {
       setIsDebouncing(true);
       const handler = setTimeout(() => {
         loadSearchResults(searchQuery, 1);
-      }, 500); // 500ms delay
+      }, 500);
       return () => clearTimeout(handler);
     } else {
       setIsDebouncing(false);
@@ -152,7 +138,6 @@ const Header = () => {
       </div>
 
       {/* Section: Main Header (NON-STICKY) */}
-      {/* کلاس‌های 'sticky top-0' حذف شدند تا هدر چسبان نباشد */}
       <header className="bg-background shadow-lg w-full border-b border-muted z-30">
         <div className="container mx-auto px-4 py-2 flex justify-between items-center gap-4">
           <div className="flex items-center gap-10">
@@ -168,7 +153,7 @@ const Header = () => {
                 width={80}
                 height={80}
                 priority
-                className="w-16 h-16 sm:w-20 sm:h-20" // Responsive Image Size
+                className="w-16 h-16 sm:w-20 sm:h-20"
               />
             </Link>
             {/* Desktop Navigation */}
@@ -185,10 +170,9 @@ const Header = () => {
             <div className=" flex flex-col items-end p-2 sm:p-3 bg-gradient-to-br from-accent/10 to-accent/5 rounded-xl border border-accent/60 transition-all duration-300 shadow-md hover:shadow-lg hover:shadow-accent/20 hover:border-accent sm:mt-1">
               <a
                 href="tel:09002450090"
-                className="flex items-center gap-2 text-primary font-extrabold text-sm sm:text-lg md:text-xl leading-none hover:text-accent transition-colors" // Adjusted text size
+                className="flex items-center gap-2 text-primary font-extrabold text-sm sm:text-lg md:text-xl leading-none hover:text-accent transition-colors"
               >
-                <Phone className=" h-4 w-4 sm:h-5 sm:w-5 text-accent " />{" "}
-                {/* Adjusted icon size */}
+                <Phone className=" h-4 w-4 sm:h-5 sm:w-5 text-accent " />
                 <span className="![direction:ltr]">0900 245 0090</span>
               </a>
               <p className="hidden sm:flex text-xs font-bold text-secondary items-center mt-1">
@@ -199,28 +183,25 @@ const Header = () => {
             {/* Search Toggle Button */}
             <button
               onClick={() => setIsSearchOpen(true)}
-              className="p-2 border border-input-border text-foreground rounded-full hover:bg-muted transition-colors" // Reduced padding slightly
+              className="p-2 border border-input-border text-foreground rounded-full hover:bg-muted transition-colors"
               aria-label="جستجو"
             >
-              <Search className="h-5 w-5 text-primary" /> {/* Fixed size */}
+              <Search className="h-5 w-5 text-primary" />
             </button>
             {/* Mobile Menu Toggle Button */}
             <button
               onClick={() => setIsMenuOpen(true)}
-              className="p-2 border border-primary text-primary rounded-full lg:hidden hover:bg-primary/10 transition-colors" // Reduced padding slightly
+              className="p-2 border border-primary text-primary rounded-full lg:hidden hover:bg-primary/10 transition-colors"
               aria-label="منوی اصلی"
             >
-              <Menu className="h-5 w-5" /> {/* Fixed size */}
+              <Menu className="h-5 w-5" />
             </button>
           </div>
         </div>
 
-        {/* --- Off-canvas Menu and Search Modal (Inside the main returned JSX) --- */}
-
         {/* Section: Mobile Off-canvas Menu */}
         <div
           className={`fixed top-0 right-0 h-full w-full max-w-xs sm:max-w-sm bg-background transition-transform duration-300 ease-in-out transform ${
-            // Adjusted max-width for better responsiveness
             isMenuOpen ? "translate-x-0" : "translate-x-full"
           } lg:hidden shadow-2xl z-[60]`}
         >
@@ -236,16 +217,25 @@ const Header = () => {
               </button>
             </div>
             <nav className="flex flex-col gap-2 flex-grow">
-              <NavLink href="/" onClick={() => setIsMenuOpen(false)}>
+              <NavLink
+                href="/"
+                onClick={() => setIsMenuOpen(false)}
+                className="text-primary"
+              >
                 صفحه اصلی
               </NavLink>
-              <NavLink href="/services" onClick={() => setIsMenuOpen(false)}>
-                خدمات
-              </NavLink>
-              <NavLink href="/articles" onClick={() => setIsMenuOpen(false)}>
+              <NavLink
+                href="/articles"
+                onClick={() => setIsMenuOpen(false)}
+                className="text-primary"
+              >
                 مقالات
               </NavLink>
-              <NavLink href="/contact" onClick={() => setIsMenuOpen(false)}>
+              <NavLink
+                href="/contact"
+                onClick={() => setIsMenuOpen(false)}
+                className="text-primary"
+              >
                 تماس با ما
               </NavLink>
             </nav>
@@ -255,10 +245,10 @@ const Header = () => {
               </p>
               <a
                 href="tel:09002450090"
-                className="flex items-center justify-center gap-3 py-3 px-6 bg-accent text-white w-full shadow-lg rounded-full font-semibold transition-transform hover:scale-105"
+                className="flex items-center justify-center gap-3 py-3 px-6 bg-accent text-primary w-full shadow-lg rounded-full font-semibold transition-transform hover:scale-105"
               >
                 <Phone className="h-5 w-5" />
-                <span className="text-lg font-extrabold tracking-wider">
+                <span className="text-lg font-extrabold tracking-wider !text-black/50">
                   0900 245 0090
                 </span>
               </a>

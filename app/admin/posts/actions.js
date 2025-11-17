@@ -16,6 +16,7 @@ export async function getPosts({
     const offset = (page - 1) * limit;
     const searchQuery = `%${query}%`;
     let whereClauses = ["(p.title LIKE ? OR p.content LIKE ?)"];
+    // Parameters for WHERE clause
     let params = [searchQuery, searchQuery];
     if (
       status !== "all" &&
@@ -31,17 +32,35 @@ export async function getPosts({
       : "p.created_at";
     const safeOrder = order.toLowerCase() === "asc" ? "ASC" : "DESC";
 
+    // UPDATED: Added scoring (title_score: 2, content_score: 1) and updated ORDER BY
+    // If the query is empty, we don't need scoring, but for simplicity, we'll always include it.
+    // We use LIKE ? for the scoring logic to check for the presence of the query string.
     const postsQuery = `
       SELECT p.id, p.title, p.slug, p.status, p.view_count, p.created_at, p.updated_at,
-      GROUP_CONCAT(DISTINCT t.name SEPARATOR ', ') as categories
+      GROUP_CONCAT(DISTINCT t.name SEPARATOR ', ') as categories,
+      (CASE WHEN p.title LIKE ? THEN 2 ELSE 0 END) as title_score,
+      (CASE WHEN p.content LIKE ? THEN 1 ELSE 0 END) as content_score
       FROM posts p
       LEFT JOIN post_terms pt ON p.id = pt.post_id
       LEFT JOIN terms t ON pt.term_id = t.id AND t.type = 'category'
-      ${whereString} GROUP BY p.id ORDER BY ${safeSortBy} ${safeOrder} LIMIT ? OFFSET ?`;
+      ${whereString} 
+      GROUP BY p.id 
+      ORDER BY (title_score + content_score) DESC, ${safeSortBy} ${safeOrder} 
+      LIMIT ? OFFSET ?`;
 
     const countQuery = `SELECT COUNT(*) as total FROM posts p ${whereString}`;
 
-    const [posts] = await db.query(postsQuery, [...params, limit, offset]);
+    // The parameters for postsQuery are now:
+    // [searchQuery for title_score, searchQuery for content_score, ...whereParams, limit, offset]
+    const postsQueryParams = [
+      searchQuery,
+      searchQuery,
+      ...params,
+      limit,
+      offset,
+    ];
+
+    const [posts] = await db.query(postsQuery, postsQueryParams);
     const [[{ total }]] = await db.query(countQuery, params);
 
     return { posts, total, pages: Math.ceil(total / limit), success: true };
