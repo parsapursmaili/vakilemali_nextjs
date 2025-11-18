@@ -43,6 +43,10 @@ const Header = () => {
   const [hasMore, setHasMore] = useState(true);
   const [isDebouncing, setIsDebouncing] = useState(false);
 
+  // <--- تغییرات فوکوس خودکار
+  const searchInputRef = useRef(null); // Ref برای فیلد ورودی جستجو
+  // تغییرات فوکوس خودکار --->
+
   // --- Infinite Scroll Logic ---
   const observer = useRef();
   const lastPostElementRef = useCallback(
@@ -98,6 +102,23 @@ const Header = () => {
       loadSearchResults(searchQuery, page);
     }
   }, [page]);
+
+  // <--- تغییرات فوکوس خودکار
+  // Effect for focusing the search input when the modal opens
+  useEffect(() => {
+    if (isSearchOpen && searchInputRef.current) {
+      // استفاده از setTimeout برای اعمال فوکوس پس از اتمام Transition مُدال
+      const timer = setTimeout(() => {
+        searchInputRef.current.focus();
+      }, 100);
+
+      return () => clearTimeout(timer);
+    } else if (!isSearchOpen && searchInputRef.current) {
+      // برای حذف فوکوس هنگام بسته شدن (اختیاری)
+      searchInputRef.current.blur();
+    }
+  }, [isSearchOpen]);
+  // تغییرات فوکوس خودکار --->
 
   // Effect for handling 'Escape' key press to close modals
   useEffect(() => {
@@ -286,7 +307,9 @@ const Header = () => {
                   className="w-full pl-16 pr-6 py-4 text-base sm:text-lg border-2 border-muted bg-background/90 focus:ring-2 focus:ring-accent focus:border-accent rounded-full shadow-lg transition-all"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  autoFocus
+                  // <--- تغییرات فوکوس خودکار
+                  ref={searchInputRef}
+                  // تغییرات فوکوس خودکار --->
                 />
                 <div className="absolute left-4 top-1/2 -translate-y-1/2 p-2.5 text-primary">
                   {isDebouncing ? (

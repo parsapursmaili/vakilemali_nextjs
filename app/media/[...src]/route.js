@@ -8,7 +8,9 @@ const PUBLIC_DIR = path.join(process.cwd(), "public");
 const CACHE_DIR = path.join(PUBLIC_DIR, "image-cache");
 const UPLOAD_DIRS = ["uploads"];
 const FINAL_WIDTH = 720;
-const FINAL_QUALITY = 85;
+// کیفیت 75
+const FINAL_QUALITY = 75;
+// کش مرورگر (1 سال)
 const CACHE_MAX_AGE = 31536000;
 
 async function fileExists(filePath) {
@@ -29,8 +31,7 @@ function isSafeRelative(relPath) {
 export async function GET(req, context) {
   const { params } = context;
 
-  // رفع خطا: باید params را قبل از استفاده await کنیم
-  const { src } = await params;
+  const { src } = params;
 
   if (!src || src.length === 0) {
     return new NextResponse("No path provided", { status: 400 });
@@ -43,13 +44,16 @@ export async function GET(req, context) {
 
   const originalExtension = path.extname(relPath);
   const pathWithoutExt = relPath.slice(0, -originalExtension.length);
+
+  // 1. تعیین مسیر کش: همیشه با پسوند .webp
   const cacheFileName = pathWithoutExt + `.webp`;
   const cachePath = path.join(CACHE_DIR, cacheFileName);
   const cacheDir = path.dirname(cachePath);
 
-  // جستجو در کش
+  // 2. جستجو در کش
   if (await fileExists(cachePath)) {
     const stream = fs.createReadStream(cachePath);
+    // سرویس دهی سریع از کش به همراه هدر کش مرورگر
     return new NextResponse(stream, {
       status: 200,
       headers: {
@@ -59,8 +63,10 @@ export async function GET(req, context) {
     });
   }
 
-  // پیدا کردن فایل اصلی در uploads
+  // 3. پیدا کردن فایل اصلی در uploads
   let originalPath = null;
+
+  // لیست پسوندهای قابل جستجو برای فایل اصلی
   const possibleExtensions = [
     originalExtension,
     ".webp",
@@ -70,13 +76,17 @@ export async function GET(req, context) {
     ".JPG",
     ".PNG",
   ];
+  // حذف تکراری‌ها و یکسان‌سازی حروف کوچک برای جستجوی دقیق
+  const uniqueSearchExtensions = [
+    ...new Set(possibleExtensions.map((e) => e.toLowerCase())),
+  ];
 
   const pathWithoutExtAndUploads = pathWithoutExt.startsWith("uploads/")
     ? pathWithoutExt.substring("uploads/".length)
     : pathWithoutExt;
 
   for (const dir of UPLOAD_DIRS) {
-    for (const ext of possibleExtensions) {
+    for (const ext of uniqueSearchExtensions) {
       const finalSearchPath = path.join(
         PUBLIC_DIR,
         dir,
@@ -95,25 +105,45 @@ export async function GET(req, context) {
     return new NextResponse("Image not found", { status: 404 });
   }
 
+  // 4. عملیات انتقال/بهینه‌سازی و ذخیره در کش
+
   await ensureDir(cacheDir);
 
-  // پردازش و تبدیل به WebP
-  const optimizedBuffer = await sharp(originalPath)
-    .resize({
-      width: FINAL_WIDTH,
-      withoutEnlargement: true,
-    })
-    .webp({ quality: FINAL_QUALITY })
-    .toBuffer();
+  const foundExtension = path.extname(originalPath).toLowerCase();
+  let finalImageBuffer;
 
-  // ذخیره در cache
-  await fsp.writeFile(cachePath, optimizedBuffer, { mode: 0o644 });
+  // اگر WebP بود: کپی مستقیم برای کش شدن
+  if (foundExtension === ".webp") {
+    // فقط برای کش شدن سریعتر در درخواست‌های بعدی، WebP اصلی را کپی می‌کنیم
+    await fsp.copyFile(originalPath, cachePath);
+    // خواندن فایل برای سرویس دهی (یا می‌توانستیم استریم را مستقیما سرویس دهیم)
+    finalImageBuffer = await fsp.readFile(originalPath);
 
-  // ارسال خروجی
-  return new NextResponse(optimizedBuffer, {
+    // توجه: در این حالت، WebP بدون تغییر سایز/کیفیت سرویس داده می‌شود.
+    // اگر می‌خواهید حتی WebP اصلی هم اجباراً به 720px تبدیل شود، باید از sharp استفاده کنید.
+    // بر اساس درخواست "webp بود چون حتما قبلا اپتیمایز شده دست بهش نخوره" فرض بر عدم تغییر می‌گیریم.
+  }
+  // اگر غیر WebP بود: بهینه‌سازی
+  else {
+    // پردازش و تبدیل به WebP
+    finalImageBuffer = await sharp(originalPath)
+      .resize({
+        width: FINAL_WIDTH,
+        withoutEnlargement: true,
+      })
+      .webp({ quality: FINAL_QUALITY }) // کیفیت 75
+      .toBuffer();
+
+    // ذخیره در cache
+    await fsp.writeFile(cachePath, finalImageBuffer, { mode: 0o644 });
+  }
+
+  // 5. ارسال خروجی
+  return new NextResponse(finalImageBuffer, {
     status: 200,
     headers: {
       "Content-Type": "image/webp",
+      // کش سمت سرور (فایل کش) و کش سمت مرورگر (هدر)
       "Cache-Control": `public, max-age=${CACHE_MAX_AGE}, immutable`,
     },
   });

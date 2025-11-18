@@ -325,6 +325,39 @@ tbody tr:nth-child(even) {
 
 /*
 --------------------------------------------------------------------------------
+بوار پیشرفت (NProgress/NextTopLoader) - رفع مشکل تداخل رنگ
+--------------------------------------------------------------------------------
+*/
+
+/* افزایش Z-Index برای اطمینان از قرارگیری نوار روی تمام عناصر */
+#nprogress {
+  pointer-events: none;
+  z-index: 99999;
+}
+
+#nprogress .bar {
+  height: 3px !important; /* مطابق با ارتفاع در کامپوننت React */
+
+  /* استفاده از رنگ یکدست طلایی (var(--accent)) به جای گرادیانت برای ثبات بیشتر رنگ */
+  background: var(--accent) !important;
+
+  /* تنظیم سایه بر اساس تنظیمات کامپوننت */
+  box-shadow: 0 0 10px var(--accent), 0 0 5px var(--accent);
+}
+
+#nprogress .peg {
+  display: block;
+  position: absolute;
+  right: 0px;
+  width: 100px;
+  height: 100%;
+  box-shadow: 0 0 10px var(--accent), 0 0 5px var(--accent) !important;
+  opacity: 1;
+  transform: rotate(3deg) translate(0px, -4px);
+}
+
+/*
+--------------------------------------------------------------------------------
 بخش ۷: سفارشی‌سازی Tailwind Typography (کلاس .prose)
 --------------------------------------------------------------------------------
 */
@@ -383,6 +416,7 @@ tbody tr:nth-child(even) {
   content: "";
   position: absolute;
   inset: 0;
+  /* رنگ primary-light در حالت روشن */
   background: rgba(63, 95, 167, 0.1);
   pointer-events: none;
 }
@@ -392,25 +426,10 @@ tbody tr:nth-child(even) {
   top: 0;
   bottom: -2px;
   width: 4px;
+  /* رنگ primary-light در حالت روشن */
   background-color: rgba(63, 95, 167, 0.5);
   pointer-events: none;
 }
 .ProseMirror.resize-cursor {
   cursor: col-resize;
-}
-
-#nprogress .bar {
-  height: 6px !important;
-
-  background: linear-gradient(
-    to right,
-    var(--accent),
-    var(--primary-light)
-  ) !important;
-
-  box-shadow: 0 0 15px var(--accent);
-}
-
-#nprogress .peg {
-  box-shadow: 0 0 15px var(--accent), 0 0 10px var(--accent) !important;
 }

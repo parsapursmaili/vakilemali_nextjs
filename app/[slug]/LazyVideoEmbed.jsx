@@ -4,11 +4,6 @@
 import React, { useRef, useState, useEffect } from "react";
 import parse from "html-react-parser"; // برای تبدیل رشته HTML به المنت‌های React
 
-/**
- * کامپوننتی برای نمایش تنبل (Lazy Load) محتوای ویدیویی iframe.
- * این کامپوننت از Intersection Observer استفاده می‌کند تا بارگذاری محتوای iframe
- * را تا زمانی که نزدیک دید کاربر قرار بگیرد، به تعویق بیندازد.
- */
 export default function LazyVideoEmbed({ embedHtml }) {
   const containerRef = useRef(null);
   const [shouldLoad, setShouldLoad] = useState(false);
@@ -17,24 +12,20 @@ export default function LazyVideoEmbed({ embedHtml }) {
   useEffect(() => {
     if (!embedHtml || !containerRef.current || shouldLoad) return;
 
-    // بارگذاری محتوا در سمت کلاینت
-    const parsedContent = parse(String(embedHtml), {
-      // اختیاری: تنظیمات اضافی parse (اگر نیاز به تغییر تگ‌ها باشد)
-    });
+    const parsedContent = parse(String(embedHtml), {});
     setContent(parsedContent);
 
-    // تنظیم Intersection Observer
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
             setShouldLoad(true);
-            observer.unobserve(entry.target); // پس از مشاهده، از حالت مشاهده خارج می‌شود
+            observer.unobserve(entry.target);
           }
         });
       },
       {
-        rootMargin: "200px 0px", // 200 پیکسل زودتر شروع به بارگذاری کند
+        rootMargin: "200px 0px",
         threshold: 0,
       }
     );
@@ -48,14 +39,11 @@ export default function LazyVideoEmbed({ embedHtml }) {
     };
   }, [embedHtml, shouldLoad]);
 
-  // منطق نمایش
   if (!embedHtml) {
     return null;
   }
 
-  // اگر هنوز نباید لود شود، یک Placeholder با ابعاد صحیح نمایش داده می‌شود
   if (!shouldLoad) {
-    // استفاده از style های آپارات برای نسبت ابعاد (16:9)
     return (
       <div
         ref={containerRef}
@@ -73,14 +61,8 @@ export default function LazyVideoEmbed({ embedHtml }) {
     );
   }
 
-  // پس از لود شدن، محتوای اصلی نمایش داده می‌شود
   return (
     <div ref={containerRef} className="my-6">
-      {/* 
-        توجه: از آنجایی که کد آپارات شامل <style> و <div> پدر است، 
-        نیازی به افزودن کلاس‌های پاسخگو نیست. 
-        parse() آن را به طور کامل رندر می‌کند.
-      */}
       {content}
     </div>
   );
