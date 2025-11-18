@@ -3,12 +3,14 @@ import { db } from "@/lib/db/mysql";
 import { revalidatePath } from "next/cache";
 import { isAuthenticated } from "@/actions/auth";
 import { cookies } from "next/headers";
+
 export async function getPostData(slug) {
   try {
     const slug2 = decodeURIComponent(slug);
     const [rows] = await db.query(
       // تغییر: کوئری برای slug به جای id بهتر است چون از URL می‌آید
-      "SELECT id, title, slug, content, excerpt, thumbnail, created_at, view_count FROM posts WHERE slug = ? AND status = 'published'",
+      // ✅ تغییر: اضافه کردن video_link به SELECT
+      "SELECT id, title, slug, content, excerpt, thumbnail, video_link, created_at, view_count FROM posts WHERE slug = ? AND status = 'published'",
       [slug2]
     );
     if (!rows || rows.length === 0) {
@@ -136,7 +138,7 @@ export async function getRelatedPosts({
         LIMIT ?
       `;
       const [latestRows] = await db.query(latestQuery, [
-        excludeIds,
+        excludeIds.length > 0 ? excludeIds : [0],
         remainingLimit,
       ]);
 

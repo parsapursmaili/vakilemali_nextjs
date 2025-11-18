@@ -79,7 +79,8 @@ export async function getPosts({
 export async function getPostByIdForEditPage(postId) {
   try {
     const [rows] = await db.query(
-      "SELECT id, title, slug, content, excerpt, thumbnail, status, created_at, updated_at, view_count, type, approved FROM posts WHERE id = ?",
+      // ✨ تغییر ۲: اضافه کردن فیلد video_link
+      "SELECT id, title, slug, content, excerpt, thumbnail, status, created_at, updated_at, view_count, type, approved, video_link FROM posts WHERE id = ?",
       [postId]
     );
 
@@ -130,7 +131,7 @@ export async function getAllTerms() {
   }
 }
 
-// **اصلاح شده:** به‌روزرسانی پست (رفع باگ approved)
+// **اصلاح شده:** به‌روزرسانی پست (رفع باگ approved و اضافه شدن video_link)
 export async function updatePost(postId, formData) {
   const connection = await db.getConnection();
   try {
@@ -142,6 +143,8 @@ export async function updatePost(postId, formData) {
     const excerpt = formData.get("excerpt");
     const status = formData.get("status");
     const thumbnail = formData.get("thumbnail");
+    // ✨ تغییر ۲: دریافت فیلد جدید
+    const video_link = formData.get("video_link");
 
     // ✨✨✨ رفع باگ: فقط اگر مقدار دقیقاً "1" باشد، approved برابر 1 قرار می‌گیرد.
     const approved = formData.get("approved") === "1" ? 1 : 0;
@@ -150,8 +153,19 @@ export async function updatePost(postId, formData) {
     const tagIds = formData.getAll("tags").map(Number);
 
     await connection.execute(
-      `UPDATE posts SET title = ?, slug = ?, content = ?, excerpt = ?, status = ?, thumbnail = ?, approved = ? WHERE id = ?`,
-      [title, slug, content, excerpt, status, thumbnail, approved, postId]
+      // ✨ تغییر ۲: اضافه کردن فیلد video_link به دستور UPDATE
+      `UPDATE posts SET title = ?, slug = ?, content = ?, excerpt = ?, status = ?, thumbnail = ?, approved = ?, video_link = ? WHERE id = ?`,
+      [
+        title,
+        slug,
+        content,
+        excerpt,
+        status,
+        thumbnail,
+        approved,
+        video_link,
+        postId,
+      ]
     );
     await connection.execute("DELETE FROM post_terms WHERE post_id = ?", [
       postId,
@@ -180,7 +194,7 @@ export async function updatePost(postId, formData) {
   }
 }
 
-// **اصلاح شده:** ایجاد پست (رفع باگ approved و اضافه شدن revalidatePath برای صفحه عمومی)
+// **اصلاح شده:** ایجاد پست (رفع باگ approved و اضافه شدن revalidatePath برای صفحه عمومی و video_link)
 export async function createPost(formData) {
   const connection = await db.getConnection();
   try {
@@ -192,6 +206,8 @@ export async function createPost(formData) {
     const excerpt = formData.get("excerpt");
     const status = formData.get("status");
     const thumbnail = formData.get("thumbnail");
+    // ✨ تغییر ۲: دریافت فیلد جدید
+    const video_link = formData.get("video_link");
 
     // ✨✨✨ رفع باگ: فقط اگر مقدار دقیقاً "1" باشد، approved برابر 1 قرار می‌گیرد.
     const approved = formData.get("approved") === "1" ? 1 : 0;
@@ -200,8 +216,9 @@ export async function createPost(formData) {
     const tagIds = formData.getAll("tags").map(Number);
 
     const [postResult] = await connection.execute(
-      `INSERT INTO posts (title, slug, content, excerpt, status, thumbnail, approved, type, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, 'post', NOW(), NOW())`,
-      [title, slug, content, excerpt, status, thumbnail, approved]
+      // ✨ تغییر ۲: اضافه کردن فیلد video_link به دستور INSERT
+      `INSERT INTO posts (title, slug, content, excerpt, status, thumbnail, approved, type, created_at, updated_at, video_link) VALUES (?, ?, ?, ?, ?, ?, ?, 'post', NOW(), NOW(), ?)`,
+      [title, slug, content, excerpt, status, thumbnail, approved, video_link]
     );
 
     const postId = postResult.insertId;

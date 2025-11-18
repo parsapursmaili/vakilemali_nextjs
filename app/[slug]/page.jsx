@@ -3,10 +3,9 @@ import Image from "next/image";
 import { notFound } from "next/navigation";
 import { Clock, Tag, User } from "lucide-react";
 import parse from "html-react-parser";
-
-// ایمپورت CTAها
 import ConsultationCTA from "@/components/ConsultationCTA";
 import FloatingCTA from "@/components/FloatingCTA";
+import LazyVideoEmbed from "./LazyVideoEmbed";
 
 import { getPostData, getRelatedPosts } from "./post";
 import PostsSlider from "@/components/PostsSlider";
@@ -117,6 +116,7 @@ export async function generateMetadata({ params }) {
 
 export default async function SinglePostPage({ params }) {
   const slug = params.slug;
+  // ✅ post.video_link در اینجا در دسترس است
   const { post, terms } = await getPostData(slug);
   if (!post) notFound();
 
@@ -221,6 +221,18 @@ export default async function SinglePostPage({ params }) {
             </div>
             <PostViews postId={post.id} initialViews={post.view_count} />
           </header>
+
+          {/* ======================= ✅ بخش جدید: نمایش ویدیوی Embed ======================= */}
+          {/* ویدیو دقیقاً بعد از هدر و قبل از محتوای اصلی قرار می‌گیرد. */}
+          {post.video_link && (
+            <div className="w-full">
+              {" "}
+              {/* دیگر نیازی به !px-3 در اینجا نیست چون توسط LazyVideoEmbed مدیریت می‌شود */}
+              {/* استفاده از LazyVideoEmbed برای لود سمت کلاینت و بهبود SEO/سرعت */}
+              <LazyVideoEmbed embedHtml={post.video_link} />
+            </div>
+          )}
+          {/* ================================================================================= */}
 
           {/* ✅ تغییر !px-4 به !px-3 برای کاهش پدینگ موبایل در content section */}
           <section className="text-foreground leading-relaxed text-justify !px-3 sm:!px-0 py-6">

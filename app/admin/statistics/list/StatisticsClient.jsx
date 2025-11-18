@@ -4,10 +4,8 @@
 import { useState, useTransition, useRef, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import moment from "jalali-moment";
-import { Eye, Trophy, PieChart } from "lucide-react"; // آیکون‌های lucide-react جایگزین شدند
+import { Eye, Trophy, PieChart } from "lucide-react";
 import PostChartModal from "./PostChartModal";
-
-// آیکون‌های SVG سفارشی حذف شدند و جایگزین آن‌ها در زیر استفاده شده است.
 
 export default function StatisticsClient({ initialData }) {
   const router = useRouter();
@@ -15,9 +13,13 @@ export default function StatisticsClient({ initialData }) {
   const [isPending, startTransition] = useTransition();
   const [modalPost, setModalPost] = useState(null);
 
+  // تغییر: محاسبه تاریخ امروز شمسی برای استفاده در stateهای پیش‌فرض
+  const todayJalali = moment().locale("fa").format("YYYY/MM/DD");
+
   const [isCustomRangeOpen, setIsCustomRangeOpen] = useState(false);
-  const [customStartDate, setCustomStartDate] = useState("");
-  const [customEndDate, setCustomEndDate] = useState("");
+  // تغییر: مقداردهی اولیه stateهای بازه سفارشی با تاریخ امروز شمسی
+  const [customStartDate, setCustomStartDate] = useState(todayJalali);
+  const [customEndDate, setCustomEndDate] = useState(todayJalali);
 
   const customRangeRef = useRef(null);
   const activePeriod = searchParams.get("period") || "week";
@@ -42,6 +44,10 @@ export default function StatisticsClient({ initialData }) {
       return;
     }
     setIsCustomRangeOpen(false);
+    // بازنشانی تاریخ‌های سفارشی به امروز هنگام تغییر بازه به غیر سفارشی
+    setCustomStartDate(todayJalali);
+    setCustomEndDate(todayJalali);
+
     const params = new URLSearchParams(window.location.search);
     params.set("period", period);
     params.delete("startDate");
@@ -62,17 +68,17 @@ export default function StatisticsClient({ initialData }) {
 
   const periods = [
     { key: "today", label: "امروز" },
+    // تغییر: افزودن بازه دیروز
+    { key: "yesterday", label: "دیروز" },
     { key: "week", label: "هفته اخیر" },
     { key: "month", label: "ماه اخیر" },
     { key: "year", label: "سال اخیر" },
     { key: "all", label: "کل دوران" },
   ];
-  const todayJalali = moment().locale("fa").format("YYYY/MM/DD");
 
   return (
     <div
       className={`p-4 md:p-6 overflow-x-hidden transition-opacity duration-300 ${
-        // overflow-x-hidden برای رفع اسکرول افقی
         isPending ? "opacity-60" : "opacity-100"
       }`}
     >
@@ -87,7 +93,7 @@ export default function StatisticsClient({ initialData }) {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         <div className="bg-[var(--muted)] p-5 rounded-lg flex items-center gap-4">
-          <Eye className="h-6 w-6" /> {/* آیکون جایگزین */}
+          <Eye className="h-6 w-6" />
           <div>
             <p className="text-sm text-[var(--foreground)] opacity-80">
               کل بازدید ({initialData.range})
@@ -98,15 +104,13 @@ export default function StatisticsClient({ initialData }) {
           </div>
         </div>
         <div className="bg-[var(--muted)] p-5 rounded-lg flex items-center gap-4">
-          <Trophy className="h-6 w-6" /> {/* آیکون جایگزین */}
+          <Trophy className="h-6 w-6" />
           <div>
             <p className="text-sm text-[var(--foreground)] opacity-80">
               پربازدیدترین پست
             </p>
-            <p
-              className="text-lg font-semibold text-[var(--primary)] truncate"
-              title={initialData.topPost?.title}
-            >
+            {/* تغییر: حذف truncate و title برای نمایش کامل متن در خطوط بیشتر */}
+            <p className="text-base font-semibold text-[var(--primary)] whitespace-normal">
               {initialData.topPost
                 ? `${
                     initialData.topPost.title
@@ -227,7 +231,6 @@ export default function StatisticsClient({ initialData }) {
                     }
                   >
                     <PieChart className="h-5 w-5 ml-1" /> نمودار{" "}
-                    {/* آیکون جایگزین */}
                   </button>
                 </td>
               </tr>

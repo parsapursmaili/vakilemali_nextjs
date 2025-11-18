@@ -30,6 +30,17 @@ export async function getStatisticsData({
           startDate = moment().startOf("day").format("YYYY-MM-DD");
           endDate = today;
           break;
+        // تغییر: افزودن منطق برای بازه "دیروز"
+        case "yesterday":
+          startDate = moment()
+            .subtract(1, "day")
+            .startOf("day")
+            .format("YYYY-MM-DD");
+          endDate = moment()
+            .subtract(1, "day")
+            .endOf("day")
+            .format("YYYY-MM-DD");
+          break;
         case "month":
           startDate = moment().subtract(30, "days").format("YYYY-MM-DD");
           endDate = today;
@@ -81,7 +92,7 @@ export async function getStatisticsData({
         topPost = { title: posts[0].title, views: posts[0].period_views };
     }
 
-    // ===== اصلاح نهایی و قطعی برای نمایش تاریخ شمسی با فرمت صحیح jYYYY/jMM/jDD =====
+    // اصلاح نهایی و قطعی برای نمایش تاریخ شمسی در earliestDateJalali و range
     moment.locale("fa");
     return {
       totalViews,
@@ -109,14 +120,14 @@ export async function getStatisticsData({
   }
 }
 
-// تابع نمودار بدون تغییر
+// تابع نمودار
 export async function getPostChartData({
   postId,
   period,
   startDate: jalaliStartDate,
   endDate: jalaliEndDate,
 }) {
-  if (!postId) return [];
+  if (period === "all" || !postId) return [];
   moment.locale("en");
   const today = moment().endOf("day").format("YYYY-MM-DD");
   let startDate, endDate;
@@ -128,6 +139,14 @@ export async function getPostChartData({
       case "today":
         startDate = moment().format("YYYY-MM-DD");
         endDate = today;
+        break;
+      // تغییر: افزودن منطق برای بازه "دیروز"
+      case "yesterday":
+        startDate = moment()
+          .subtract(1, "day")
+          .startOf("day")
+          .format("YYYY-MM-DD");
+        endDate = moment().subtract(1, "day").endOf("day").format("YYYY-MM-DD");
         break;
       case "month":
         startDate = moment().subtract(30, "days").format("YYYY-MM-DD");
@@ -143,7 +162,7 @@ export async function getPostChartData({
         break;
     }
   }
-  if (period === "all") return [];
+
   const [dailyData] = await db.query(
     `SELECT view_date, view_count FROM post_view WHERE post_id = ? AND view_date BETWEEN ? AND ? ORDER BY view_date ASC`,
     [postId, startDate, endDate]

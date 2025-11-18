@@ -25,13 +25,16 @@ export default async function EditPostPage({ params }) {
       content: "",
       excerpt: "",
       thumbnail: "",
-      status: "draft",
+      // ✨ تغییر ۱: وضعیت پیش‌فرض به "منتشر شده"
+      status: "published",
       approved: 0,
       view_count: 0,
       updated_at: new Date().toISOString(),
       categoryIds: [],
       tagIds: [],
       comments: [],
+      // ✨ تغییر ۲: فیلد جدید محتوای ویدئویی
+      video_link: "",
     };
 
     return (

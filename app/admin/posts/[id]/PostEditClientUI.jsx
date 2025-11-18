@@ -98,6 +98,7 @@ export default function PostEditClientUI({
   const router = useRouter();
   const isNewPost = !initialPost.id;
 
+  // ✨ فیلد video_link از initialPost دریافت می‌شود
   const [postData, setPostData] = useState(initialPost);
   // محتوای پست که اکنون قرار است کد HTML خام باشد
   const [content, setContent] = useState(initialPost.content || "");
@@ -126,6 +127,8 @@ export default function PostEditClientUI({
     formData.set("content", content);
     formData.set("excerpt", postData.excerpt || "");
     formData.set("approved", postData.approved ? "1" : "0");
+    // ✨ تغییر ۲: اضافه کردن فیلد video_link به FormData
+    formData.set("video_link", postData.video_link || "");
 
     // =================================================================
     // <<< ✨✨✨ راه حل کلیدی مشکل ✨✨✨ >>>
@@ -404,6 +407,27 @@ export default function PostEditClientUI({
           </div>
           {/* ========================================================================= */}
 
+          {/* ✨ تغییر ۲: باکس جدید محتوای ویدئویی */}
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+            <div className="flex items-center gap-2 font-bold text-gray-800 dark:text-gray-200 mb-3">
+              <Library className="w-5 h-5 text-gray-500" />
+              <span>محتوای ویدئویی (کد HTML/iframe)</span>
+            </div>
+            <textarea
+              name="video_link"
+              rows="6"
+              value={postData.video_link || ""}
+              onChange={handleInputChange}
+              className="w-full text-sm !direction-ltr !text-left font-mono"
+              placeholder="کد embed ویدئو (مانند iframe یا کد HTML) را اینجا وارد کنید."
+            ></textarea>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+              این محتوا (مانند کد ویدئوهای یوتیوب یا آپارات) در بخش مشخصی از
+              صفحه پست نمایش داده خواهد شد.
+            </p>
+          </div>
+          {/* ========================================================================= */}
+
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
             <div className="flex items-center gap-2 font-bold text-gray-800 dark:text-gray-200 mb-3">
               <FileText className="w-5 h-5 text-gray-500" />
@@ -498,21 +522,26 @@ export default function PostEditClientUI({
               onChange={(e) => setCategorySearch(e.target.value)}
               className="w-full mb-3 text-sm"
             />
-            <div className="max-h-60 overflow-y-auto space-y-2 p-2 border rounded-md bg-gray-50 dark:bg-gray-900">
+            <div className="max-h-60 overflow-y-auto space-y-1 p-2 border rounded-md bg-gray-50 dark:bg-gray-900">
               {filteredCategories.length > 0 ? (
                 filteredCategories.map((cat) => (
-                  <div key={cat.id} className="flex items-center">
+                  // ✨ تغییر ۳: بهبود استایل آیتم دسته بندی
+                  <div
+                    key={cat.id}
+                    className="flex items-center p-1 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors"
+                  >
                     <input
                       type="checkbox"
                       id={`cat-${cat.id}`}
                       name="categories"
                       value={cat.id}
                       defaultChecked={initialPost.categoryIds.includes(cat.id)}
-                      className="!w-auto mr-2"
+                      // کلاس‌های بهتر برای سایز و ظاهر
+                      className="!w-4 !h-4 ml-3 flex-shrink-0 text-primary-500 bg-gray-100 border-gray-300 dark:bg-gray-600 dark:border-gray-500 focus:ring-primary-500 rounded"
                     />
                     <label
                       htmlFor={`cat-${cat.id}`}
-                      className="text-sm cursor-pointer"
+                      className="text-sm cursor-pointer select-none text-gray-700 dark:text-gray-300 flex-grow"
                     >
                       {cat.name}
                     </label>
@@ -556,20 +585,25 @@ export default function PostEditClientUI({
           </SidebarAccordion>
 
           <SidebarAccordion title="برچسب‌ها" icon={Tag}>
-            <div className="max-h-60 overflow-y-auto space-y-2 p-2 border rounded-md bg-gray-50 dark:bg-gray-900">
+            <div className="max-h-60 overflow-y-auto space-y-1 p-2 border rounded-md bg-gray-50 dark:bg-gray-900">
               {allTags.map((tag) => (
-                <div key={tag.id} className="flex items-center">
+                // ✨ تغییر ۳: بهبود استایل آیتم برچسب
+                <div
+                  key={tag.id}
+                  className="flex items-center p-1 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors"
+                >
                   <input
                     type="checkbox"
                     id={`tag-${tag.id}`}
                     name="tags"
                     value={tag.id}
                     defaultChecked={initialPost.tagIds.includes(tag.id)}
-                    className="!w-auto mr-2"
+                    // کلاس‌های بهتر برای سایز و ظاهر
+                    className="!w-4 !h-4 ml-3 flex-shrink-0 text-primary-500 bg-gray-100 border-gray-300 dark:bg-gray-600 dark:border-gray-500 focus:ring-primary-500 rounded"
                   />
                   <label
                     htmlFor={`tag-${tag.id}`}
-                    className="text-sm cursor-pointer"
+                    className="text-sm cursor-pointer select-none text-gray-700 dark:text-gray-300 flex-grow"
                   >
                     {tag.name}
                   </label>
