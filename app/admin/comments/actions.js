@@ -8,7 +8,6 @@ const COMMENTS_PER_PAGE = 50;
 
 /**
  * دریافت نظرات از دیتابیس با قابلیت فیلتر و صفحه‌بندی
- * @param {object} options - شامل filterStatus و page
  */
 export async function getComments({ filterStatus = "all", page = 1 }) {
   try {
@@ -67,6 +66,57 @@ export async function updateCommentDetails(commentId, data) {
   } catch (error) {
     console.error("Database Error updating comment details:", error.message);
     return { error: "خطا در ویرایش کامنت." };
+  }
+}
+
+/**
+ * افزودن یک پاسخ جدید به یک کامنت والد (با بررسی پارامترها)
+ */
+export async function addCommentReply({
+  parent_id,
+  author_name,
+  author_email,
+  content,
+  post_id,
+}) {
+  if (!parent_id || !post_id || !author_name || !content) {
+    return {
+      error: "اطلاعات کامل برای ثبت پاسخ (والد، پست، نام و متن) الزامی است.",
+    };
+  }
+
+  const numeric_post_id = Number(post_id);
+  const numeric_parent_id = Number(parent_id);
+
+  // بررسی اعتبار اعدادی
+  if (
+    isNaN(numeric_post_id) ||
+    isNaN(numeric_parent_id) ||
+    numeric_post_id <= 0 ||
+    numeric_parent_id <= 0
+  ) {
+    return { error: "شناسه پست یا والد نامعتبر است." };
+  }
+
+  try {
+    const [result] = await db.query(
+      "INSERT INTO comments (post_id, parent_id, author_name, author_email, content, status) VALUES (?, ?, ?, ?, ?, 'pending')",
+      [
+        numeric_post_id,
+        numeric_parent_id,
+        author_name,
+        author_email || null,
+        content,
+      ]
+    );
+    revalidatePath("/admin/comments");
+    return { success: "پاسخ شما با موفقیت ثبت شد و در انتظار تایید است." };
+  } catch (error) {
+    console.error("Database Error adding comment reply:", error.message);
+    return {
+      error:
+        "خطا در ثبت پاسخ کامنت. (بررسی کنید که post_id و parent_id در جدول شما وجود داشته باشند)",
+    };
   }
 }
 

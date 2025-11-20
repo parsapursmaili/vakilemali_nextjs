@@ -2,6 +2,13 @@ import PostsSlider from "@/components/PostsSlider";
 import FilterControls from "./FilterControls";
 import Pagination from "./Pagination";
 import { getCategories, getPaginatedPosts } from "./actions";
+
+export const metadata = {
+  title: "وبلاگ وکیل مالی | جدیدترین مقالات حقوقی ",
+  description:
+    "جدیدترین مقالات حقوقی در حوزه مالیات، طلاق و خانواده، چک و سفته، ارث و میراث، دعاوی کیفری، قراردادها و … به قلم وکلای پایه یک دادگستری. آموزش رایگان + راهکارهای عملی.",
+};
+
 export default async function ArticlesPage({ searchParams }) {
   const page = parseInt(searchParams.page) || 1;
   const sort = searchParams.sort || "newest";

@@ -28,7 +28,7 @@ function StatisticsSkeleton() {
 }
 
 async function StatisticsLoader({ searchParams }) {
-  const period = searchParams.period || "week";
+  const period = searchParams.period || "today";
   const startDate = searchParams.startDate;
   const endDate = searchParams.endDate;
 

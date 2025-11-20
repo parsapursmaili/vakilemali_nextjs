@@ -1,6 +1,5 @@
 "use client";
 
-// --- Imports ---
 import Link from "next/link";
 import Image from "next/image";
 import { useState, useEffect, useRef, useCallback } from "react";

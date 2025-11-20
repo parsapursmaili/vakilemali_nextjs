@@ -22,7 +22,7 @@ export default function StatisticsClient({ initialData }) {
   const [customEndDate, setCustomEndDate] = useState(todayJalali);
 
   const customRangeRef = useRef(null);
-  const activePeriod = searchParams.get("period") || "week";
+  const activePeriod = searchParams.get("period") || "today";
 
   // بستن پاپ‌آپ با کلیک بیرون
   useEffect(() => {

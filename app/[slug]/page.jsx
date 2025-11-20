@@ -222,13 +222,9 @@ export default async function SinglePostPage({ params }) {
             <PostViews postId={post.id} initialViews={post.view_count} />
           </header>
 
-          {/* ======================= ✅ بخش جدید: نمایش ویدیوی Embed ======================= */}
-          {/* ویدیو دقیقاً بعد از هدر و قبل از محتوای اصلی قرار می‌گیرد. */}
           {post.video_link && (
             <div className="w-full">
               {" "}
-              {/* دیگر نیازی به !px-3 در اینجا نیست چون توسط LazyVideoEmbed مدیریت می‌شود */}
-              {/* استفاده از LazyVideoEmbed برای لود سمت کلاینت و بهبود SEO/سرعت */}
               <LazyVideoEmbed embedHtml={post.video_link} />
             </div>
           )}
@@ -260,13 +256,12 @@ export default async function SinglePostPage({ params }) {
               <div className="flex flex-wrap gap-2 items-center">
                 <span className="font-semibold">برچسب‌ها:</span>
                 {tags.map((tag) => (
-                  <Link
+                  <span
                     key={tag.slug}
-                    href={`/tag/${tag.slug}`}
-                    className="text-xs bg-muted/70 dark:bg-muted/40 hover:bg-muted transition-colors px-3 py-1 rounded-full text-primary font-medium"
+                    className="text-xs bg-muted/70 dark:bg-muted/40 transition-colors px-3 py-1 rounded-full text-primary font-medium"
                   >
                     #{tag.name}
-                  </Link>
+                  </span>
                 ))}
               </div>
             </footer>

@@ -165,22 +165,24 @@ export default function DashboardClient({ initialStats: stats }) {
       </header>
 
       <main className="grid grid-cols-12 gap-5">
-        {/* نوار آمار کلیدی */}
+        {/* نوار آمار کلیدی (با جابجایی "کل بازدیدها" و "بازدید امروز") */}
         <div className="col-span-12 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
           <StatCard
             title="پست‌های منتشر شده"
             value={stats.kpis.totalPosts}
             icon={<FileText size={20} className="text-gray-400" />}
           />
-          <StatCard
-            title="کل بازدیدها"
-            value={stats.kpis.totalViews}
-            icon={<Eye size={20} className="text-gray-400" />}
-          />
+          {/* "بازدید امروز" به جایگاه دوم منتقل شد */}
           <StatCard
             title="بازدید امروز"
             value={stats.kpis.todayViews}
             icon={<Clock size={20} className="text-gray-400" />}
+          />
+          {/* "کل بازدیدها" به جایگاه سوم منتقل شد */}
+          <StatCard
+            title="کل بازدیدها"
+            value={stats.kpis.totalViews}
+            icon={<Eye size={20} className="text-gray-400" />}
           />
           <StatCard
             title="دیدگاه‌ها"
@@ -192,7 +194,44 @@ export default function DashboardClient({ initialStats: stats }) {
           />
         </div>
 
-        {/* روند تولید محتوا (نمودار پویا) */}
+        {/* پست‌های پربازدید (به ردیف اول منتقل شد) */}
+        <div className="col-span-12 lg:col-span-7">
+          <TopPostsWidget topPosts={stats.topPosts} />
+        </div>
+
+        {/* تحلیل دسته‌بندی‌ها (در کنار پست‌های پربازدید در ردیف اول قرار گرفت) */}
+        <div className="col-span-12 lg:col-span-5 bg-[var(--muted)] p-5 rounded-xl">
+          <h3 className="font-bold mb-4 flex items-center gap-2 text-lg">
+            <BookOpen size={20} className="text-blue-500" /> تحلیل دسته‌بندی‌ها
+          </h3>
+          <div className="space-y-2">
+            <div className="grid grid-cols-5 gap-4 text-xs text-gray-500 font-semibold px-2 pb-2 border-b border-[var(--background)]">
+              <div className="col-span-3">عنوان دسته‌بندی</div>
+              <div className="text-center">پست‌ها</div>
+              <div className="text-center">بازدید کل</div>
+            </div>
+            <div className="space-y-1">
+              {stats.categoryPerformance.slice(0, 5).map((cat) => (
+                <div
+                  key={cat.slug}
+                  className="grid grid-cols-5 gap-4 items-center p-2 rounded-lg hover:bg-[var(--background)] transition-colors"
+                >
+                  <div className="col-span-3 font-semibold text-sm text-[var(--foreground)]">
+                    {cat.name}
+                  </div>
+                  <div className="text-center font-mono text-sm">
+                    {cat.post_count.toLocaleString("fa-IR")}
+                  </div>
+                  <div className="text-center font-mono font-bold text-sm text-[var(--accent)]">
+                    {cat.total_views.toLocaleString("fa-IR")}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* روند تولید محتوا (نمودار پویا) (به ردیف دوم منتقل شد) */}
         <div className="col-span-12 lg:col-span-8 bg-[var(--muted)] p-5 rounded-xl">
           <h3 className="font-bold mb-5 text-lg">روند تولید محتوا از ابتدا</h3>
           <div className="h-72">
@@ -257,7 +296,7 @@ export default function DashboardClient({ initialStats: stats }) {
           </div>
         </div>
 
-        {/* دیدگاه‌های اخیر */}
+        {/* دیدگاه‌های اخیر (در کنار روند تولید محتوا در ردیف دوم قرار گرفت) */}
         <div className="col-span-12 lg:col-span-4 bg-[var(--muted)] p-5 rounded-xl">
           <h3 className="font-bold mb-5 text-lg">دیدگاه‌های اخیر</h3>
           <div className="space-y-4">
@@ -292,43 +331,6 @@ export default function DashboardClient({ initialStats: stats }) {
                 هنوز دیدگاهی ثبت نشده است.
               </div>
             )}
-          </div>
-        </div>
-
-        {/* پست‌های پربازدید */}
-        <div className="col-span-12 lg:col-span-7">
-          <TopPostsWidget topPosts={stats.topPosts} />
-        </div>
-
-        {/* تحلیل دسته‌بندی‌ها */}
-        <div className="col-span-12 lg:col-span-5 bg-[var(--muted)] p-5 rounded-xl">
-          <h3 className="font-bold mb-4 flex items-center gap-2 text-lg">
-            <BookOpen size={20} className="text-blue-500" /> تحلیل دسته‌بندی‌ها
-          </h3>
-          <div className="space-y-2">
-            <div className="grid grid-cols-5 gap-4 text-xs text-gray-500 font-semibold px-2 pb-2 border-b border-[var(--background)]">
-              <div className="col-span-3">عنوان دسته‌بندی</div>
-              <div className="text-center">پست‌ها</div>
-              <div className="text-center">بازدید کل</div>
-            </div>
-            <div className="space-y-1">
-              {stats.categoryPerformance.slice(0, 5).map((cat) => (
-                <div
-                  key={cat.slug}
-                  className="grid grid-cols-5 gap-4 items-center p-2 rounded-lg hover:bg-[var(--background)] transition-colors"
-                >
-                  <div className="col-span-3 font-semibold text-sm text-[var(--foreground)]">
-                    {cat.name}
-                  </div>
-                  <div className="text-center font-mono text-sm">
-                    {cat.post_count.toLocaleString("fa-IR")}
-                  </div>
-                  <div className="text-center font-mono font-bold text-sm text-[var(--accent)]">
-                    {cat.total_views.toLocaleString("fa-IR")}
-                  </div>
-                </div>
-              ))}
-            </div>
           </div>
         </div>
       </main>
