@@ -1,7 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
-import { Clock, Tag, User } from "lucide-react";
+import { Tag, User, RefreshCw } from "lucide-react"; // ✅ تغییر: استفاده از RefreshCw به جای Clock
 import parse from "html-react-parser";
 import ConsultationCTA from "@/components/ConsultationCTA";
 import FloatingCTA from "@/components/FloatingCTA";
@@ -28,7 +28,6 @@ function cleanImageUrlPath(src) {
   }
 }
 
-/** پاکسازی و تبدیل h1 به h2 برای سئو */
 function processContentSmartly(html) {
   if (!html) return "";
   const protectedBlocksRegex =
@@ -47,8 +46,6 @@ function processContentSmartly(html) {
 
   let finalHtml = processedParts.join("");
   finalHtml = finalHtml.replace(/<p>\s*<\/p>/g, "");
-
-  // ✅ تبدیل h1 به h2
   finalHtml = finalHtml.replace(/<h1/g, "<h2").replace(/<\/h1>/g, "</h2>");
 
   return finalHtml;
@@ -57,12 +54,12 @@ function processContentSmartly(html) {
 // ========================== Metadata ==========================
 
 export async function generateMetadata({ params }) {
-  const { post, terms } = await getPostData(params.slug);
+  const { post } = await getPostData(params.slug);
   if (!post) notFound();
 
   const postUrl = `/${params.slug}`;
   const organizationName = "وکیل مالی";
-  const organizationUrl = "https://vakilemali.com"; // ✅ اصلاح دامنه
+  const organizationUrl = "https://vakilemali.com";
   const authorName = "مرضیه توانگر";
 
   const description =
@@ -116,7 +113,6 @@ export async function generateMetadata({ params }) {
 
 export default async function SinglePostPage({ params }) {
   const slug = params.slug;
-  // ✅ post.video_link در اینجا در دسترس است
   const { post, terms } = await getPostData(slug);
   if (!post) notFound();
 
@@ -137,6 +133,9 @@ export default async function SinglePostPage({ params }) {
 
   const CTA_PHONE_NUMBER = "۰۹۰۰ ۲۴۵ ۰۰۹۰";
   const CTA_TELEGRAM_ID = "vakile_mali";
+
+  // ✅ تعیین تاریخ نمایش (اگر updated_at نبود، created_at را نشان بده)
+  const displayDate = post.updated_at || post.created_at;
 
   return (
     <>
@@ -188,49 +187,76 @@ export default async function SinglePostPage({ params }) {
             </div>
           )}
 
-          {/* ✅ تغییر !px-4 به !px-3 برای کاهش پدینگ موبایل در header */}
           <header className="!px-3 sm:!px-0 pt-6 pb-4 border-b border-muted/30 dark:border-muted/40">
-            <h1 className="font-bold text-primary leading-tight mb-4 text-3xl md:text-4xl sm:text-3xl">
+            <h1 className="font-bold text-primary leading-tight mb-6 text-3xl md:text-4xl sm:text-3xl">
               {post.title}
             </h1>
 
-            <div className="flex flex-wrap items-center gap-3 text-sm text-foreground/80 border-t pt-3">
-              <span className="flex items-center gap-1">
-                <User className="w-4 h-4 text-info" /> نوشته‌ی{" "}
-                <strong className="text-foreground/90">مرضیه توانگر</strong>
-              </span>
-              <span className="flex items-center gap-1">
-                <Clock className="w-4 h-4 text-accent" />
-                {new Date(post.created_at).toLocaleDateString("fa-IR")}
-              </span>
-              {categories.length > 0 && (
-                <span className="flex items-center gap-1">
-                  <Tag className="w-4 h-4 text-secondary" />
-                  {categories.map((cat, i) => (
-                    <Link
-                      key={cat.id} // ✅ تغییر: استفاده از cat.id به عنوان key
-                      href={`/articles?category=${cat.id}`} // ✅ تغییر: لینک به صفحه آرشیو مقالات با category ID
-                      className="text-primary hover:underline"
-                    >
-                      {cat.name}
-                      {i < categories.length - 1 ? "،" : ""}
-                    </Link>
-                  ))}
+            {/* ✅ بخش متادیتای بازطراحی شده */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-sm text-foreground/80 border-t pt-4">
+              {/* ستون راست: نویسنده و دسته‌بندی */}
+              <div className="flex flex-wrap items-center gap-4">
+                <span className="flex items-center gap-1.5 bg-muted/30 px-2 py-1 rounded-md">
+                  <User className="w-4 h-4 text-info" />
+                  <span className="text-foreground/70">نوشته‌ی</span>
+                  <strong className="text-foreground/90">مرضیه توانگر</strong>
                 </span>
-              )}
+
+                {categories.length > 0 && (
+                  <span className="flex items-center gap-1.5">
+                    <Tag className="w-4 h-4 text-secondary" />
+                    {categories.map((cat, i) => (
+                      <Link
+                        key={cat.id}
+                        href={`/articles?category=${cat.id}`}
+                        className="text-primary hover:underline hover:text-primary-light transition-colors"
+                      >
+                        {cat.name}
+                        {i < categories.length - 1 ? "،" : ""}
+                      </Link>
+                    ))}
+                  </span>
+                )}
+              </div>
+
+              <div className="flex items-center gap-3">
+                <div
+                  className="
+                    flex items-center gap-2 px-3 py-1.5 rounded-lg 
+                    bg-[#c5892f]/10 dark:bg-[#c5892f]/20 
+                    border border-[#c5892f]/30 
+                    text-[#c5892f] dark:text-[#dcb066]
+                  "
+                  title="تاریخ آخرین بروزرسانی محتوا"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                  <span className="text-xs font-semibold">بروزرسانی:</span>
+                  <time
+                    dateTime={displayDate}
+                    className="font-bold tracking-tight"
+                  >
+                    {new Date(displayDate).toLocaleDateString("fa-IR", {
+                      year: "numeric",
+                      month: "long",
+                      day: "numeric",
+                    })}
+                  </time>
+                </div>
+
+                {/* کامپوننت بازدید */}
+                <div className="opacity-80 scale-90 sm:scale-100">
+                  <PostViews postId={post.id} initialViews={post.view_count} />
+                </div>
+              </div>
             </div>
-            <PostViews postId={post.id} initialViews={post.view_count} />
           </header>
 
           {post.video_link && (
-            <div className="w-full">
-              {" "}
+            <div className="w-full mt-6">
               <LazyVideoEmbed embedHtml={post.video_link} />
             </div>
           )}
-          {/* ================================================================================= */}
 
-          {/* ✅ تغییر !px-4 به !px-3 برای کاهش پدینگ موبایل در content section */}
           <section className="text-foreground leading-relaxed text-justify !px-3 sm:!px-0 py-6">
             <div
               className="
@@ -251,14 +277,13 @@ export default async function SinglePostPage({ params }) {
           </section>
 
           {tags.length > 0 && (
-            /* ✅ تغییر !px-4 به !px-3 برای کاهش پدینگ موبایل در footer */
             <footer className="border-t border-muted/30 dark:border-muted/40 !px-3 sm:!px-0 pt-4 pb-6">
               <div className="flex flex-wrap gap-2 items-center">
-                <span className="font-semibold">برچسب‌ها:</span>
+                <span className="font-semibold text-sm">برچسب‌ها:</span>
                 {tags.map((tag) => (
                   <span
                     key={tag.slug}
-                    className="text-xs bg-muted/70 dark:bg-muted/40 transition-colors px-3 py-1 rounded-full text-primary font-medium"
+                    className="text-xs bg-muted/70 dark:bg-muted/40 transition-colors px-3 py-1 rounded-full text-primary font-medium hover:bg-muted hover:text-primary-light cursor-default"
                   >
                     #{tag.name}
                   </span>
