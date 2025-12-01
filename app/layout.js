@@ -23,12 +23,20 @@ export const metadata = {
     "وکیل مالی، مرکز تخصصی مشاوره و وکالت آنلاین در حوزه مالیات، طلاق و نفقه، دعاوی کیفری، چک و سفته، ارث و میراث، قراردادها و … . وکیل پایه یک با امکان مشاوره تلفنی و حضوری.",
 };
 
+// ✅ اضافه کردن تنظیمات Viewport برای اجبار حالت لایت در موبایل
+export const viewport = {
+  themeColor: "#f9fafb", // رنگ هدر مرورگر موبایل (هم‌رنگ بک‌گراند شما)
+  colorScheme: "light", // به مرورگر می‌گوید سایت فقط لایت است
+};
+
 // ۲. تبدیل layout به یک تابع async (که قبلاً انجام داده‌اید)
 export default async function RootLayout({ children }) {
   return (
     <html
       lang="fa"
       dir="rtl"
+      // ✅ اضافه کردن استایل برای اجبار اسکیما به لایت
+      style={{ colorScheme: "light" }}
       className={`${vazir.variable} ${geistSans.variable} ${geistMono.variable}`}
     >
       <body className={`antialiased bg-background text-foreground`}>
