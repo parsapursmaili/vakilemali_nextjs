@@ -1,9 +1,11 @@
 "use server";
 
-import { db } from "@/lib/db/mysql"; // مسیر اتصال به دیتابیس شما
+import { db } from "@/lib/db/mysql"; // اطمینان حاصل کنید مسیر دیتابیس درست است
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 
+//================================================================================
+// دریافت لیست پست‌ها (برای صفحه اصلی ادمین)
+//================================================================================
 export async function getPosts({
   page = 1,
   limit = 15,
@@ -16,8 +18,9 @@ export async function getPosts({
     const offset = (page - 1) * limit;
     const searchQuery = `%${query}%`;
     let whereClauses = ["(p.title LIKE ? OR p.content LIKE ?)"];
-    // Parameters for WHERE clause
+    // پارامترهای WHERE
     let params = [searchQuery, searchQuery];
+
     if (
       status !== "all" &&
       ["published", "draft", "archived"].includes(status)
@@ -26,15 +29,15 @@ export async function getPosts({
       params.push(status);
     }
     const whereString = `WHERE ${whereClauses.join(" AND ")}`;
+
+    // اعتبارسنجی مرتب‌سازی
     const allowedSortBy = ["title", "created_at", "updated_at", "view_count"];
     const safeSortBy = allowedSortBy.includes(sortBy)
       ? `p.${sortBy}`
       : "p.created_at";
     const safeOrder = order.toLowerCase() === "asc" ? "ASC" : "DESC";
 
-    // UPDATED: Added scoring (title_score: 2, content_score: 1) and updated ORDER BY
-    // If the query is empty, we don't need scoring, but for simplicity, we'll always include it.
-    // We use LIKE ? for the scoring logic to check for the presence of the query string.
+    // کوئری اصلی با امتیازدهی جستجو و فقط دریافت دسته‌بندی‌ها (بدون تگ)
     const postsQuery = `
       SELECT p.id, p.title, p.slug, p.status, p.view_count, p.created_at, p.updated_at,
       GROUP_CONCAT(DISTINCT t.name SEPARATOR ', ') as categories,
@@ -50,8 +53,7 @@ export async function getPosts({
 
     const countQuery = `SELECT COUNT(*) as total FROM posts p ${whereString}`;
 
-    // The parameters for postsQuery are now:
-    // [searchQuery for title_score, searchQuery for content_score, ...whereParams, limit, offset]
+    // پارامترهای کوئری اصلی
     const postsQueryParams = [
       searchQuery,
       searchQuery,
@@ -76,10 +78,13 @@ export async function getPosts({
   }
 }
 
+//================================================================================
+// دریافت اطلاعات یک پست برای صفحه ویرایش
+//================================================================================
 export async function getPostByIdForEditPage(postId) {
   try {
+    // ✨ فیلد video_link اضافه شده است
     const [rows] = await db.query(
-      // ✨ تغییر ۲: اضافه کردن فیلد video_link
       "SELECT id, title, slug, content, excerpt, thumbnail, status, created_at, updated_at, view_count, type, approved, video_link FROM posts WHERE id = ?",
       [postId]
     );
@@ -88,10 +93,12 @@ export async function getPostByIdForEditPage(postId) {
       return { post: null, success: false, error: "Post not found." };
     const post = rows[0];
 
+    // ✨ فقط دسته‌بندی‌ها دریافت می‌شوند (تگ‌ها حذف شدند)
     const [termsResult] = await db.query(
-      `SELECT t.id, t.type FROM terms t JOIN post_terms pt ON pt.term_id = t.id WHERE pt.post_id = ?`,
+      `SELECT t.id, t.type FROM terms t JOIN post_terms pt ON pt.term_id = t.id WHERE pt.post_id = ? AND t.type = 'category'`,
       [post.id]
     );
+
     const [commentsResult] = await db.query(
       `SELECT id, author_name, content, created_at, status FROM comments WHERE post_id = ? ORDER BY created_at DESC`,
       [post.id]
@@ -99,10 +106,8 @@ export async function getPostByIdForEditPage(postId) {
 
     const postData = {
       ...post,
-      categoryIds: termsResult
-        .filter((t) => t.type === "category")
-        .map((t) => t.id),
-      tagIds: termsResult.filter((t) => t.type === "tag").map((t) => t.id),
+      categoryIds: termsResult.map((t) => t.id), // فقط آیدی دسته‌بندی‌ها
+      tagIds: [], // آرایه خالی برای تگ‌ها جهت جلوگیری از خطای کلاینت
       comments: commentsResult,
     };
     return { post: postData, success: true };
@@ -115,14 +120,18 @@ export async function getPostByIdForEditPage(postId) {
   }
 }
 
+//================================================================================
+// دریافت تمام ترم‌ها (فقط دسته‌بندی‌ها)
+//================================================================================
 export async function getAllTerms() {
   try {
+    // فقط type='category' را می‌گیریم
     const [terms] = await db.query(
-      "SELECT id, name, slug, type FROM terms ORDER BY name ASC"
+      "SELECT id, name, slug, type FROM terms WHERE type = 'category' ORDER BY name ASC"
     );
     return {
-      categories: terms.filter((t) => t.type === "category"),
-      tags: terms.filter((t) => t.type === "tag"),
+      categories: terms,
+      tags: [], // آرایه خالی برای تگ‌ها برمی‌گردانیم
       success: true,
     };
   } catch (error) {
@@ -131,7 +140,9 @@ export async function getAllTerms() {
   }
 }
 
-// **اصلاح شده:** به‌روزرسانی پست (رفع باگ approved و اضافه شدن video_link)
+//================================================================================
+// به‌روزرسانی پست
+//================================================================================
 export async function updatePost(postId, formData) {
   const connection = await db.getConnection();
   try {
@@ -143,17 +154,17 @@ export async function updatePost(postId, formData) {
     const excerpt = formData.get("excerpt");
     const status = formData.get("status");
     const thumbnail = formData.get("thumbnail");
-    // ✨ تغییر ۲: دریافت فیلد جدید
+    // ✨ دریافت فیلد ویدئو
     const video_link = formData.get("video_link");
 
-    // ✨✨✨ رفع باگ: فقط اگر مقدار دقیقاً "1" باشد، approved برابر 1 قرار می‌گیرد.
+    // ✨ رفع باگ approved: تبدیل صحیح به 0 یا 1
     const approved = formData.get("approved") === "1" ? 1 : 0;
 
+    // فقط دسته‌بندی‌ها پردازش می‌شوند
     const categoryIds = formData.getAll("categories").map(Number);
-    const tagIds = formData.getAll("tags").map(Number);
 
     await connection.execute(
-      // ✨ تغییر ۲: اضافه کردن فیلد video_link به دستور UPDATE
+      // ✨ اضافه شدن video_link به آپدیت
       `UPDATE posts SET title = ?, slug = ?, content = ?, excerpt = ?, status = ?, thumbnail = ?, approved = ?, video_link = ? WHERE id = ?`,
       [
         title,
@@ -167,12 +178,15 @@ export async function updatePost(postId, formData) {
         postId,
       ]
     );
+
+    // حذف تمام اتصالات قبلی (چون تگ‌ها حذف شده‌اند، همه چیز پاک و فقط دسته‌بندی‌ها اضافه می‌شوند)
     await connection.execute("DELETE FROM post_terms WHERE post_id = ?", [
       postId,
     ]);
-    const allTermIds = [...new Set([...categoryIds, ...tagIds])];
-    if (allTermIds.length > 0) {
-      const termValues = allTermIds.map((termId) => [postId, termId]);
+
+    // درج دسته‌بندی‌های جدید
+    if (categoryIds.length > 0) {
+      const termValues = categoryIds.map((termId) => [postId, termId]);
       await connection.query(
         "INSERT INTO post_terms (post_id, term_id) VALUES ?",
         [termValues]
@@ -180,7 +194,8 @@ export async function updatePost(postId, formData) {
     }
 
     await connection.commit();
-    // revalidatePath برای اطمینان از به روز رسانی لیست ادمین و صفحه عمومی پست
+
+    // به‌روزرسانی کش
     revalidatePath("/admin/posts");
     revalidatePath(`/${slug}`);
 
@@ -194,7 +209,9 @@ export async function updatePost(postId, formData) {
   }
 }
 
-// **اصلاح شده:** ایجاد پست (رفع باگ approved و اضافه شدن revalidatePath برای صفحه عمومی و video_link)
+//================================================================================
+// ایجاد پست جدید
+//================================================================================
 export async function createPost(formData) {
   const connection = await db.getConnection();
   try {
@@ -206,26 +223,24 @@ export async function createPost(formData) {
     const excerpt = formData.get("excerpt");
     const status = formData.get("status");
     const thumbnail = formData.get("thumbnail");
-    // ✨ تغییر ۲: دریافت فیلد جدید
+    // ✨ دریافت فیلد ویدئو
     const video_link = formData.get("video_link");
 
-    // ✨✨✨ رفع باگ: فقط اگر مقدار دقیقاً "1" باشد، approved برابر 1 قرار می‌گیرد.
+    // ✨ رفع باگ approved
     const approved = formData.get("approved") === "1" ? 1 : 0;
 
     const categoryIds = formData.getAll("categories").map(Number);
-    const tagIds = formData.getAll("tags").map(Number);
 
     const [postResult] = await connection.execute(
-      // ✨ تغییر ۲: اضافه کردن فیلد video_link به دستور INSERT
+      // ✨ اضافه شدن video_link به اینسرت
       `INSERT INTO posts (title, slug, content, excerpt, status, thumbnail, approved, type, created_at, updated_at, video_link) VALUES (?, ?, ?, ?, ?, ?, ?, 'post', NOW(), NOW(), ?)`,
       [title, slug, content, excerpt, status, thumbnail, approved, video_link]
     );
 
     const postId = postResult.insertId;
 
-    const allTermIds = [...new Set([...categoryIds, ...tagIds])];
-    if (allTermIds.length > 0) {
-      const termValues = allTermIds.map((termId) => [postId, termId]);
+    if (categoryIds.length > 0) {
+      const termValues = categoryIds.map((termId) => [postId, termId]);
       await connection.query(
         "INSERT INTO post_terms (post_id, term_id) VALUES ?",
         [termValues]
@@ -233,9 +248,8 @@ export async function createPost(formData) {
     }
 
     await connection.commit();
-    // revalidatePath برای اطمینان از به روز رسانی لیست ادمین
+
     revalidatePath("/admin/posts");
-    // **تغییر کلیدی:** revalidatePath برای اطمینان از به روز رسانی صفحه عمومی پست جدید
     revalidatePath(`/${slug}`);
 
     return {
@@ -252,6 +266,9 @@ export async function createPost(formData) {
   }
 }
 
+//================================================================================
+// ویرایش سریع (Quick Edit)
+//================================================================================
 export async function quickEditPost(formData) {
   const connection = await db.getConnection();
   try {
@@ -267,6 +284,8 @@ export async function quickEditPost(formData) {
       [title, slug, status, postId]
     );
 
+    // مدیریت دسته‌بندی‌ها در ویرایش سریع (بدون دخالت تگ‌ها)
+    // ابتدا دسته‌بندی‌های قبلی این پست را پیدا و حذف می‌کنیم
     const [existingCategoryTerms] = await connection.query(
       `SELECT term_id FROM post_terms pt JOIN terms t ON pt.term_id = t.id WHERE pt.post_id = ? AND t.type = 'category'`,
       [postId]
@@ -290,7 +309,6 @@ export async function quickEditPost(formData) {
 
     await connection.commit();
     revalidatePath("/admin/posts");
-    // اضافه کردن revalidatePath برای صفحه عمومی پست در quickEdit
     revalidatePath(`/${slug}`);
 
     return { success: true, message: "ویرایش سریع با موفقیت انجام شد." };
@@ -303,6 +321,9 @@ export async function quickEditPost(formData) {
   }
 }
 
+//================================================================================
+// عملیات گروهی (Bulk Actions)
+//================================================================================
 export async function performBulkAction(action, postIds) {
   if (!postIds || postIds.length === 0)
     return { success: false, message: "هیچ پستی انتخاب نشده است." };
@@ -326,13 +347,15 @@ export async function performBulkAction(action, postIds) {
   }
 }
 
+//================================================================================
+// تغییر وضعیت دیدگاه
+//================================================================================
 export async function updateCommentStatus(commentId, status) {
   try {
     await db.execute("UPDATE comments SET status = ? WHERE id = ?", [
       status,
       commentId,
     ]);
-    // revalidatePath برای به روز رسانی کامپوننت سرور EditPostPage
     revalidatePath("/admin/posts/[id]", "page");
     return { success: true, message: "وضعیت دیدگاه تغییر کرد." };
   } catch (error) {

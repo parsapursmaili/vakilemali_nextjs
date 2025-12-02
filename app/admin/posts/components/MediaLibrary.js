@@ -6,7 +6,6 @@ import { X, UploadCloud, Loader2, Library, CheckCircle } from "lucide-react";
 import { toast } from "react-hot-toast";
 
 const imageApiLoader = ({ src }) => {
-  // این لودر بدون تغییر باقی می‌ماند و کار خود را به درستی انجام می‌دهد
   const relativePath = src.startsWith("/uploads/")
     ? src.substring("/uploads/".length)
     : src;
@@ -33,7 +32,7 @@ export default function MediaLibrary({ onClose, onSelectImage }) {
       }
     } catch (error) {
       console.error("Failed to fetch media:", error);
-      toast.error("خطا در ارتباط با سرور برای دریافت رسانه‌ها.");
+      toast.error("خطا در ارتباط با سرور.");
     } finally {
       setIsLoading(false);
     }
@@ -65,24 +64,21 @@ export default function MediaLibrary({ onClose, onSelectImage }) {
       const promise = fetch("/api/upload", { method: "POST", body: formData });
 
       toast.promise(promise, {
-        loading: "در حال آپلود تصویر...",
+        loading: "در حال آپلود...",
         success: async (res) => {
           const result = await res.json();
           if (result.success) {
-            // [اصلاح کلیدی شماره ۱]
-            // قبل از ارسال آدرس به بیرون، پیشوند '/uploads/' را از آن حذف می‌کنیم.
-            // result.url از API به صورت '/uploads/2025/11/image.webp' می‌آید.
             const relativeUrl = result.url.startsWith("/uploads/")
               ? result.url.substring("/uploads/".length)
               : result.url;
-            onSelectImage(relativeUrl); // آدرس نسبی ارسال می‌شود.
+            onSelectImage(relativeUrl);
             onClose();
-            return "آپلود با موفقیت انجام شد!";
+            return "آپلود موفقیت‌آمیز بود!";
           } else {
-            throw new Error(result.error || "خطای ناشناخته در آپلود.");
+            throw new Error(result.error || "خطای آپلود.");
           }
         },
-        error: (err) => `خطا در آپلود: ${err.message}`,
+        error: (err) => `خطا: ${err.message}`,
       });
     });
   };
@@ -90,10 +86,11 @@ export default function MediaLibrary({ onClose, onSelectImage }) {
   return (
     <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-2xl w-full max-w-4xl h-[85vh] flex flex-col overflow-hidden">
-        {/* Header Modal */}
+        {/* Header */}
         <header className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
           <h2 className="text-lg font-bold">کتابخانه رسانه</h2>
           <button
+            type="button" // Important!
             onClick={onClose}
             className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
           >
@@ -106,6 +103,7 @@ export default function MediaLibrary({ onClose, onSelectImage }) {
           <aside className="w-48 border-l border-gray-200 dark:border-gray-700 p-4 bg-gray-50 dark:bg-gray-800/50">
             <nav className="space-y-2">
               <button
+                type="button" // Important!
                 onClick={() => setActiveTab("library")}
                 className={`w-full flex items-center gap-3 p-2 rounded-md text-sm font-medium transition-colors ${
                   activeTab === "library"
@@ -117,6 +115,7 @@ export default function MediaLibrary({ onClose, onSelectImage }) {
                 <span>کتابخانه</span>
               </button>
               <button
+                type="button" // Important!
                 onClick={() => setActiveTab("upload")}
                 className={`w-full flex items-center gap-3 p-2 rounded-md text-sm font-medium transition-colors ${
                   activeTab === "upload"
@@ -130,7 +129,7 @@ export default function MediaLibrary({ onClose, onSelectImage }) {
             </nav>
           </aside>
 
-          {/* Main Content */}
+          {/* Content */}
           <main className="flex-1 p-6 overflow-y-auto">
             {activeTab === "library" && (
               <div>
@@ -138,7 +137,6 @@ export default function MediaLibrary({ onClose, onSelectImage }) {
                 {isLoading ? (
                   <div className="flex justify-center items-center h-64">
                     <Loader2 className="w-8 h-8 animate-spin text-primary" />
-                    <span className="mr-2">در حال بارگذاری...</span>
                   </div>
                 ) : media.length > 0 ? (
                   <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-4">
@@ -146,39 +144,27 @@ export default function MediaLibrary({ onClose, onSelectImage }) {
                       <div
                         key={file.url}
                         className="aspect-square border rounded-md overflow-hidden cursor-pointer group relative"
-                        // [اصلاح کلیدی شماره ۲]
-                        // در اینجا هم قبل از ارسال آدرس، پیشوند '/uploads/' را حذف می‌کنیم.
-                        // file.url از API به صورت '/uploads/2025/11/image.webp' است.
                         onClick={() => {
                           const relativeUrl = file.url.startsWith("/uploads/")
                             ? file.url.substring("/uploads/".length)
                             : file.url;
-                          onSelectImage(relativeUrl); // آدرس نسبی ارسال می‌شود.
+                          onSelectImage(relativeUrl);
                         }}
                       >
                         <Image
                           loader={imageApiLoader}
-                          src={file.url} // برای نمایش تصویر، همچنان از آدرس کامل استفاده می‌کنیم.
+                          src={file.url}
                           alt={file.name}
                           fill
                           sizes="(max-width: 768px) 33vw, 20vw"
                           className="object-cover transition-transform duration-500 group-hover:scale-110"
                         />
-                        <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                          <CheckCircle className="w-8 h-8 text-white" />
-                        </div>
                       </div>
                     ))}
                   </div>
                 ) : (
                   <div className="text-center py-12 text-gray-500">
                     <p>هیچ رسانه‌ای یافت نشد.</p>
-                    <button
-                      onClick={() => setActiveTab("upload")}
-                      className="text-primary font-semibold mt-2"
-                    >
-                      اولین تصویر را آپلود کنید.
-                    </button>
                   </div>
                 )}
               </div>
@@ -204,42 +190,30 @@ export default function MediaLibrary({ onClose, onSelectImage }) {
                       <span className="font-semibold text-primary">
                         برای انتخاب فایل کلیک کنید
                       </span>
-                      <p className="text-xs text-gray-500 mt-1">
-                        PNG, JPG, GIF, WEBP
-                      </p>
                     </label>
                   ) : (
                     <div className="flex flex-col items-center">
                       <img
                         src={preview}
                         alt="Preview"
-                        className="max-h-48 rounded-md mb-4 border dark:border-gray-600"
+                        className="max-h-48 rounded-md mb-4"
                       />
-                      <p className="text-sm font-medium truncate max-w-xs mb-4">
-                        {selectedFile?.name}
-                      </p>
                       <div className="flex gap-4">
                         <button
+                          type="button" // Important!
                           onClick={handleUpload}
                           disabled={isUploading}
-                          className="button-primary inline-flex items-center gap-2"
+                          className="button-primary"
                         >
-                          {isUploading ? (
-                            <>
-                              <Loader2 className="w-5 h-5 animate-spin" />
-                              <span>در حال آپلود...</span>
-                            </>
-                          ) : (
-                            "آپلود و انتخاب"
-                          )}
+                          {isUploading ? "در حال آپلود..." : "آپلود و انتخاب"}
                         </button>
                         <button
-                          type="button"
+                          type="button" // Important!
                           onClick={() => {
                             setSelectedFile(null);
                             setPreview(null);
                           }}
-                          className="button-secondary bg-red-600 hover:bg-red-700"
+                          className="button-secondary bg-red-600 hover:bg-red-700 text-white"
                         >
                           لغو
                         </button>
