@@ -42,9 +42,7 @@ const Header = () => {
   const [hasMore, setHasMore] = useState(true);
   const [isDebouncing, setIsDebouncing] = useState(false);
 
-  // <--- تغییرات فوکوس خودکار
-  const searchInputRef = useRef(null); // Ref برای فیلد ورودی جستجو
-  // تغییرات فوکوس خودکار --->
+  const searchInputRef = useRef(null);
 
   // --- Infinite Scroll Logic ---
   const observer = useRef();
@@ -78,7 +76,6 @@ const Header = () => {
 
   // --- Effects ---
 
-  // Effect for debouncing search input
   useEffect(() => {
     setSearchResults([]);
     setPage(1);
@@ -95,31 +92,24 @@ const Header = () => {
     }
   }, [searchQuery]);
 
-  // Effect for loading more results on page change (infinite scroll)
   useEffect(() => {
     if (page > 1) {
       loadSearchResults(searchQuery, page);
     }
   }, [page]);
 
-  // <--- تغییرات فوکوس خودکار
-  // Effect for focusing the search input when the modal opens
   useEffect(() => {
     if (isSearchOpen && searchInputRef.current) {
-      // استفاده از setTimeout برای اعمال فوکوس پس از اتمام Transition مُدال
       const timer = setTimeout(() => {
         searchInputRef.current.focus();
       }, 100);
 
       return () => clearTimeout(timer);
     } else if (!isSearchOpen && searchInputRef.current) {
-      // برای حذف فوکوس هنگام بسته شدن (اختیاری)
       searchInputRef.current.blur();
     }
   }, [isSearchOpen]);
-  // تغییرات فوکوس خودکار --->
 
-  // Effect for handling 'Escape' key press to close modals
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === "Escape") {
@@ -131,7 +121,6 @@ const Header = () => {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
-  // Effect for locking body scroll when a modal is open
   useEffect(() => {
     if (isSearchOpen || isMenuOpen) {
       document.body.style.overflow = "hidden";
@@ -147,9 +136,8 @@ const Header = () => {
 
   return (
     <>
-      {/* Section: Top Announcement Bar (NON-STICKY) */}
       <div className="line-h w-full bg-primary text-background/90 py-2 px-4 text-center border-b border-primary-light/30 flex items-center justify-center">
-        <p className=" font-light tracking-wide text-xs md:text-sm !mb-[-2px]   leading-none">
+        <p className=" font-light tracking-wide text-xs md:text-sm !mb-[-2px] leading-none">
           بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ • وَيْلٌ لِلْمُطَفِّفِينَ •
           الَّذِينَ إِذَا اكْتَالُوا عَلَى النَّاسِ يَسْتَوْفُونَ • وَإِذَا
           كَالُوهُمْ أَوْ وَزَنُوهُمْ يُخْسِرُونَ • أَلَا يَظُنّّ أُولَٰئِكَ
@@ -157,11 +145,9 @@ const Header = () => {
         </p>
       </div>
 
-      {/* Section: Main Header (NON-STICKY) */}
       <header className="bg-background shadow-lg w-full border-b border-muted z-30">
         <div className="container mx-auto px-4 py-2 flex justify-between items-center gap-4">
           <div className="flex items-center gap-10">
-            {/* Logo */}
             <Link
               href="/"
               className="flex items-center gap-2"
@@ -176,7 +162,6 @@ const Header = () => {
                 className="w-16 h-16 sm:w-20 sm:h-20"
               />
             </Link>
-            {/* Desktop Navigation */}
             <nav className="hidden lg:flex items-center gap-8">
               <NavLink href="/">صفحه اصلی</NavLink>
               <NavLink href="/articles">مقالات حقوقی</NavLink>
@@ -184,9 +169,7 @@ const Header = () => {
             </nav>
           </div>
 
-          {/* Action Buttons */}
           <div className="flex items-center gap-2 sm:gap-3">
-            {/* Contact Info */}
             <div className=" flex flex-col items-end p-2 sm:p-3 bg-gradient-to-br from-accent/10 to-accent/5 rounded-xl border border-accent/60 transition-all duration-300 shadow-md hover:shadow-lg hover:shadow-accent/20 hover:border-accent sm:mt-1">
               <a
                 href="tel:09002450090"
@@ -200,7 +183,6 @@ const Header = () => {
                 مشاوره فوری (ایتا و تلگرام)
               </p>
             </div>
-            {/* Search Toggle Button */}
             <button
               onClick={() => setIsSearchOpen(true)}
               className="p-2 border border-input-border text-foreground rounded-full hover:bg-muted transition-colors"
@@ -208,7 +190,6 @@ const Header = () => {
             >
               <Search className="h-5 w-5 text-primary" />
             </button>
-            {/* Mobile Menu Toggle Button */}
             <button
               onClick={() => setIsMenuOpen(true)}
               className="p-2 border border-primary text-primary rounded-full lg:hidden hover:bg-primary/10 transition-colors"
@@ -219,60 +200,64 @@ const Header = () => {
           </div>
         </div>
 
-        {/* Section: Mobile Off-canvas Menu */}
+        {/* Section: Mobile Full-Screen Menu */}
         <div
-          className={`fixed top-0 right-0 h-full w-full max-w-xs sm:max-w-sm bg-background transition-transform duration-300 ease-in-out transform ${
-            isMenuOpen ? "translate-x-0" : "translate-x-full"
-          } lg:hidden shadow-2xl z-[60]`}
+          className={`fixed inset-0 z-[60] bg-background/95 backdrop-blur-xl transition-all duration-300 flex flex-col ${
+            isMenuOpen
+              ? "opacity-100 visible"
+              : "opacity-0 invisible pointer-events-none"
+          }`}
         >
-          <div className="p-6 h-full flex flex-col">
-            <div className="flex justify-between items-center mb-8 border-b pb-4 border-muted">
-              <h3 className="text-xl font-bold text-primary">منوی موسسه</h3>
-              <button
-                onClick={() => setIsMenuOpen(false)}
-                className="p-2 border border-input-border text-foreground rounded-full hover:bg-muted transition-colors"
-                aria-label="بستن منو"
-              >
-                <X className="h-6 w-6" />
-              </button>
-            </div>
-            <nav className="flex flex-col gap-2 flex-grow">
-              <NavLink
+          <div className="flex justify-between items-center p-6 border-b border-muted/30">
+            <h3 className="text-xl font-bold text-primary">منوی دسترسی</h3>
+            <button
+              onClick={() => setIsMenuOpen(false)}
+              className="p-2 border border-input-border text-foreground rounded-full hover:bg-muted transition-colors bg-background shadow-sm"
+              aria-label="بستن منو"
+            >
+              <X className="h-6 w-6" />
+            </button>
+          </div>
+
+          <div className="flex flex-col items-center justify-center flex-grow gap-8 p-6 overflow-y-auto">
+            <nav className="flex flex-col items-center gap-6 w-full max-w-xs">
+              <Link
                 href="/"
                 onClick={() => setIsMenuOpen(false)}
-                className="text-primary"
+                className="text-2xl font-bold text-foreground hover:text-accent transition-all hover:scale-105"
               >
                 صفحه اصلی
-              </NavLink>
-              <NavLink
+              </Link>
+              <Link
                 href="/articles"
                 onClick={() => setIsMenuOpen(false)}
-                className="text-primary"
+                className="text-2xl font-bold text-foreground hover:text-accent transition-all hover:scale-105"
               >
                 مقالات
-              </NavLink>
-              <NavLink
+              </Link>
+              <Link
                 href="/contact"
                 onClick={() => setIsMenuOpen(false)}
-                className="text-primary"
+                className="text-2xl font-bold text-foreground hover:text-accent transition-all hover:scale-105"
               >
                 تماس با ما
-              </NavLink>
+              </Link>
             </nav>
-            <div className="mt-auto pt-6 border-t border-muted">
-              <p className="text-base font-bold mb-3 text-primary text-center">
-                برای مشاوره فوری تماس بگیرید
+
+            <div className="mt-8 w-full max-w-xs border-t border-muted/50 pt-8 flex flex-col items-center">
+              <p className="text-base font-medium mb-4 text-primary text-center">
+                مشاوره فوری
               </p>
               <a
                 href="tel:09002450090"
-                className="flex items-center justify-center gap-3 py-3 px-6 bg-accent text-primary w-full shadow-lg rounded-full font-semibold transition-transform hover:scale-105"
+                className="flex items-center justify-center gap-3 py-4 px-6 bg-accent text-primary w-full shadow-lg rounded-full font-semibold transition-transform hover:scale-105"
               >
                 <Phone className="h-5 w-5" />
-                <span className="text-lg font-extrabold tracking-wider !text-black/50">
+                <span className="text-xl font-extrabold tracking-wider !text-black/60">
                   0900 245 0090
                 </span>
               </a>
-              <p className="text-xs text-center text-foreground/70 mt-3 ">
+              <p className="text-sm text-foreground/70 mt-4 text-center">
                 (امکان ارسال پیام در ایتا و تلگرام)
               </p>
             </div>
@@ -294,7 +279,6 @@ const Header = () => {
             }`}
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Search Header */}
             <div className="flex-shrink-0">
               <h2 className="text-3xl md:text-4xl font-black mb-6 text-center bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent">
                 در مقالات ما جستجو کنید
@@ -306,9 +290,7 @@ const Header = () => {
                   className="w-full pl-16 pr-6 py-4 text-base sm:text-lg border-2 border-muted bg-background/90 focus:ring-2 focus:ring-accent focus:border-accent rounded-full shadow-lg transition-all"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  // <--- تغییرات فوکوس خودکار
                   ref={searchInputRef}
-                  // تغییرات فوکوس خودکار --->
                 />
                 <div className="absolute left-4 top-1/2 -translate-y-1/2 p-2.5 text-primary">
                   {isDebouncing ? (
@@ -320,7 +302,6 @@ const Header = () => {
               </div>
             </div>
 
-            {/* Search Results Container */}
             <div className="mt-6 flex-grow overflow-y-auto pr-2 custom-scrollbar">
               {searchResults.length > 0 ? (
                 <div className="space-y-3 pb-4">
@@ -355,7 +336,6 @@ const Header = () => {
                   })}
                 </div>
               ) : (
-                // Empty State (when no results are found)
                 <div className="flex flex-col items-center justify-center h-full text-center">
                   {!isLoading && !isDebouncing && searchQuery.length > 1 && (
                     <div className="flex flex-col items-center gap-4">
@@ -372,7 +352,6 @@ const Header = () => {
                 </div>
               )}
 
-              {/* Loading Indicator */}
               {isLoading && (
                 <div className="flex items-center justify-center gap-3 py-6">
                   <LoaderCircle className="h-7 w-7 text-primary animate-spin" />
