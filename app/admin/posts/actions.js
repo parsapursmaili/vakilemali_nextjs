@@ -1,6 +1,6 @@
 "use server";
 
-import { db } from "@/lib/db/mysql"; // اطمینان حاصل کنید مسیر دیتابیس درست است
+import { db } from "@/lib/db/mysql";
 import { revalidatePath } from "next/cache";
 
 //================================================================================
@@ -18,7 +18,6 @@ export async function getPosts({
     const offset = (page - 1) * limit;
     const searchQuery = `%${query}%`;
     let whereClauses = ["(p.title LIKE ? OR p.content LIKE ?)"];
-    // پارامترهای WHERE
     let params = [searchQuery, searchQuery];
 
     if (
@@ -30,14 +29,12 @@ export async function getPosts({
     }
     const whereString = `WHERE ${whereClauses.join(" AND ")}`;
 
-    // اعتبارسنجی مرتب‌سازی
     const allowedSortBy = ["title", "created_at", "updated_at", "view_count"];
     const safeSortBy = allowedSortBy.includes(sortBy)
       ? `p.${sortBy}`
       : "p.created_at";
     const safeOrder = order.toLowerCase() === "asc" ? "ASC" : "DESC";
 
-    // کوئری اصلی با امتیازدهی جستجو و فقط دریافت دسته‌بندی‌ها (بدون تگ)
     const postsQuery = `
       SELECT p.id, p.title, p.slug, p.status, p.view_count, p.created_at, p.updated_at,
       GROUP_CONCAT(DISTINCT t.name SEPARATOR ', ') as categories,
@@ -53,7 +50,6 @@ export async function getPosts({
 
     const countQuery = `SELECT COUNT(*) as total FROM posts p ${whereString}`;
 
-    // پارامترهای کوئری اصلی
     const postsQueryParams = [
       searchQuery,
       searchQuery,
@@ -83,9 +79,9 @@ export async function getPosts({
 //================================================================================
 export async function getPostByIdForEditPage(postId) {
   try {
-    // ✨ فیلد video_link اضافه شده است
+    // ✨ فیلد redirect_url اضافه شد
     const [rows] = await db.query(
-      "SELECT id, title, slug, content, excerpt, thumbnail, status, created_at, updated_at, view_count, type, approved, video_link FROM posts WHERE id = ?",
+      "SELECT id, title, slug, content, excerpt, thumbnail, status, created_at, updated_at, view_count, type, approved, video_link, redirect_url FROM posts WHERE id = ?",
       [postId]
     );
 
@@ -93,7 +89,6 @@ export async function getPostByIdForEditPage(postId) {
       return { post: null, success: false, error: "Post not found." };
     const post = rows[0];
 
-    // ✨ فقط دسته‌بندی‌ها دریافت می‌شوند (تگ‌ها حذف شدند)
     const [termsResult] = await db.query(
       `SELECT t.id, t.type FROM terms t JOIN post_terms pt ON pt.term_id = t.id WHERE pt.post_id = ? AND t.type = 'category'`,
       [post.id]
@@ -106,8 +101,8 @@ export async function getPostByIdForEditPage(postId) {
 
     const postData = {
       ...post,
-      categoryIds: termsResult.map((t) => t.id), // فقط آیدی دسته‌بندی‌ها
-      tagIds: [], // آرایه خالی برای تگ‌ها جهت جلوگیری از خطای کلاینت
+      categoryIds: termsResult.map((t) => t.id),
+      tagIds: [],
       comments: commentsResult,
     };
     return { post: postData, success: true };
@@ -125,18 +120,36 @@ export async function getPostByIdForEditPage(postId) {
 //================================================================================
 export async function getAllTerms() {
   try {
-    // فقط type='category' را می‌گیریم
     const [terms] = await db.query(
       "SELECT id, name, slug, type FROM terms WHERE type = 'category' ORDER BY name ASC"
     );
     return {
       categories: terms,
-      tags: [], // آرایه خالی برای تگ‌ها برمی‌گردانیم
+      tags: [],
       success: true,
     };
   } catch (error) {
     console.error("Database Error fetching terms:", error.message);
     return { categories: [], tags: [], success: false, error: error.message };
+  }
+}
+
+//================================================================================
+// جستجوی پست‌ها برای دراپ‌باکس ریدارکت (جدید) ✨
+//================================================================================
+export async function searchPostsList(query) {
+  try {
+    if (!query || query.length < 2) return { posts: [], success: true };
+
+    const searchQuery = `%${query}%`;
+    const [posts] = await db.query(
+      "SELECT id, title, slug FROM posts WHERE title LIKE ? ORDER BY created_at DESC LIMIT 10",
+      [searchQuery]
+    );
+    return { posts, success: true };
+  } catch (error) {
+    console.error("Database Error searching posts:", error.message);
+    return { posts: [], success: false, error: error.message };
   }
 }
 
@@ -154,18 +167,16 @@ export async function updatePost(postId, formData) {
     const excerpt = formData.get("excerpt");
     const status = formData.get("status");
     const thumbnail = formData.get("thumbnail");
-    // ✨ دریافت فیلد ویدئو
     const video_link = formData.get("video_link");
+    // ✨ دریافت فیلد redirect_url
+    const redirect_url = formData.get("redirect_url");
 
-    // ✨ رفع باگ approved: تبدیل صحیح به 0 یا 1
     const approved = formData.get("approved") === "1" ? 1 : 0;
-
-    // فقط دسته‌بندی‌ها پردازش می‌شوند
     const categoryIds = formData.getAll("categories").map(Number);
 
     await connection.execute(
-      // ✨ اضافه شدن video_link به آپدیت
-      `UPDATE posts SET title = ?, slug = ?, content = ?, excerpt = ?, status = ?, thumbnail = ?, approved = ?, video_link = ? WHERE id = ?`,
+      // ✨ اضافه شدن redirect_url به آپدیت
+      `UPDATE posts SET title = ?, slug = ?, content = ?, excerpt = ?, status = ?, thumbnail = ?, approved = ?, video_link = ?, redirect_url = ? WHERE id = ?`,
       [
         title,
         slug,
@@ -175,16 +186,15 @@ export async function updatePost(postId, formData) {
         thumbnail,
         approved,
         video_link,
+        redirect_url,
         postId,
       ]
     );
 
-    // حذف تمام اتصالات قبلی (چون تگ‌ها حذف شده‌اند، همه چیز پاک و فقط دسته‌بندی‌ها اضافه می‌شوند)
     await connection.execute("DELETE FROM post_terms WHERE post_id = ?", [
       postId,
     ]);
 
-    // درج دسته‌بندی‌های جدید
     if (categoryIds.length > 0) {
       const termValues = categoryIds.map((termId) => [postId, termId]);
       await connection.query(
@@ -195,7 +205,6 @@ export async function updatePost(postId, formData) {
 
     await connection.commit();
 
-    // به‌روزرسانی کش
     revalidatePath("/admin/posts");
     revalidatePath(`/${slug}`);
 
@@ -223,18 +232,27 @@ export async function createPost(formData) {
     const excerpt = formData.get("excerpt");
     const status = formData.get("status");
     const thumbnail = formData.get("thumbnail");
-    // ✨ دریافت فیلد ویدئو
     const video_link = formData.get("video_link");
+    // ✨ دریافت فیلد redirect_url
+    const redirect_url = formData.get("redirect_url");
 
-    // ✨ رفع باگ approved
     const approved = formData.get("approved") === "1" ? 1 : 0;
-
     const categoryIds = formData.getAll("categories").map(Number);
 
     const [postResult] = await connection.execute(
-      // ✨ اضافه شدن video_link به اینسرت
-      `INSERT INTO posts (title, slug, content, excerpt, status, thumbnail, approved, type, created_at, updated_at, video_link) VALUES (?, ?, ?, ?, ?, ?, ?, 'post', NOW(), NOW(), ?)`,
-      [title, slug, content, excerpt, status, thumbnail, approved, video_link]
+      // ✨ اضافه شدن redirect_url به اینسرت
+      `INSERT INTO posts (title, slug, content, excerpt, status, thumbnail, approved, type, created_at, updated_at, video_link, redirect_url) VALUES (?, ?, ?, ?, ?, ?, ?, 'post', NOW(), NOW(), ?, ?)`,
+      [
+        title,
+        slug,
+        content,
+        excerpt,
+        status,
+        thumbnail,
+        approved,
+        video_link,
+        redirect_url,
+      ]
     );
 
     const postId = postResult.insertId;
@@ -267,7 +285,7 @@ export async function createPost(formData) {
 }
 
 //================================================================================
-// ویرایش سریع (Quick Edit)
+// ویرایش سریع (بدون تغییر)
 //================================================================================
 export async function quickEditPost(formData) {
   const connection = await db.getConnection();
@@ -284,8 +302,6 @@ export async function quickEditPost(formData) {
       [title, slug, status, postId]
     );
 
-    // مدیریت دسته‌بندی‌ها در ویرایش سریع (بدون دخالت تگ‌ها)
-    // ابتدا دسته‌بندی‌های قبلی این پست را پیدا و حذف می‌کنیم
     const [existingCategoryTerms] = await connection.query(
       `SELECT term_id FROM post_terms pt JOIN terms t ON pt.term_id = t.id WHERE pt.post_id = ? AND t.type = 'category'`,
       [postId]
@@ -322,7 +338,7 @@ export async function quickEditPost(formData) {
 }
 
 //================================================================================
-// عملیات گروهی (Bulk Actions)
+// عملیات گروهی (بدون تغییر)
 //================================================================================
 export async function performBulkAction(action, postIds) {
   if (!postIds || postIds.length === 0)
@@ -348,7 +364,7 @@ export async function performBulkAction(action, postIds) {
 }
 
 //================================================================================
-// تغییر وضعیت دیدگاه
+// تغییر وضعیت دیدگاه (بدون تغییر)
 //================================================================================
 export async function updateCommentStatus(commentId, status) {
   try {

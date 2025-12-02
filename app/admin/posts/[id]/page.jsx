@@ -24,13 +24,14 @@ export default async function EditPostPage({ params }) {
       content: "",
       excerpt: "",
       thumbnail: "",
-      status: "published", // وضعیت پیش‌فرض برای پست جدید
+      status: "published",
       approved: 0,
       view_count: 0,
       updated_at: new Date().toISOString(),
       categoryIds: [],
       comments: [],
       video_link: "",
+      redirect_url: "", // ✨ فیلد جدید
     };
 
     return (
