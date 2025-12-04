@@ -3,9 +3,6 @@
 import { db } from "@/lib/db/mysql";
 import { revalidatePath } from "next/cache";
 
-//================================================================================
-// دریافت لیست پست‌ها (برای صفحه اصلی ادمین)
-//================================================================================
 export async function getPosts({
   page = 1,
   limit = 15,
@@ -27,8 +24,8 @@ export async function getPosts({
       whereClauses.push("p.status = ?");
       params.push(status);
     }
-    const whereString = `WHERE ${whereClauses.join(" AND ")}`;
 
+    const whereString = `WHERE ${whereClauses.join(" AND ")}`;
     const allowedSortBy = ["title", "created_at", "updated_at", "view_count"];
     const safeSortBy = allowedSortBy.includes(sortBy)
       ? `p.${sortBy}`
@@ -36,20 +33,19 @@ export async function getPosts({
     const safeOrder = order.toLowerCase() === "asc" ? "ASC" : "DESC";
 
     const postsQuery = `
-      SELECT p.id, p.title, p.slug, p.status, p.view_count, p.created_at, p.updated_at,
+      SELECT p.id, p.title, p.slug, p.status, p.view_count, p.created_at, p.updated_at, p.thumbnail,
       GROUP_CONCAT(DISTINCT t.name SEPARATOR ', ') as categories,
       (CASE WHEN p.title LIKE ? THEN 2 ELSE 0 END) as title_score,
       (CASE WHEN p.content LIKE ? THEN 1 ELSE 0 END) as content_score
       FROM posts p
       LEFT JOIN post_terms pt ON p.id = pt.post_id
-      LEFT JOIN terms t ON pt.term_id = t.id AND t.type = 'category'
+      LEFT JOIN terms t ON pt.term_id = t.id
       ${whereString} 
       GROUP BY p.id 
       ORDER BY (title_score + content_score) DESC, ${safeSortBy} ${safeOrder} 
       LIMIT ? OFFSET ?`;
 
     const countQuery = `SELECT COUNT(*) as total FROM posts p ${whereString}`;
-
     const postsQueryParams = [
       searchQuery,
       searchQuery,
@@ -74,12 +70,8 @@ export async function getPosts({
   }
 }
 
-//================================================================================
-// دریافت اطلاعات یک پست برای صفحه ویرایش
-//================================================================================
 export async function getPostByIdForEditPage(postId) {
   try {
-    // ✨ فیلد redirect_url اضافه شد
     const [rows] = await db.query(
       "SELECT id, title, slug, content, excerpt, thumbnail, status, created_at, updated_at, view_count, type, approved, video_link, redirect_url FROM posts WHERE id = ?",
       [postId]
@@ -90,7 +82,7 @@ export async function getPostByIdForEditPage(postId) {
     const post = rows[0];
 
     const [termsResult] = await db.query(
-      `SELECT t.id, t.type FROM terms t JOIN post_terms pt ON pt.term_id = t.id WHERE pt.post_id = ? AND t.type = 'category'`,
+      `SELECT t.id, t.name FROM terms t JOIN post_terms pt ON pt.term_id = t.id WHERE pt.post_id = ?`,
       [post.id]
     );
 
@@ -102,45 +94,30 @@ export async function getPostByIdForEditPage(postId) {
     const postData = {
       ...post,
       categoryIds: termsResult.map((t) => t.id),
-      tagIds: [],
       comments: commentsResult,
     };
     return { post: postData, success: true };
   } catch (error) {
-    console.error(
-      "Database Error fetching single post for edit:",
-      error.message
-    );
+    console.error("Database Error fetching single post:", error.message);
     return { post: null, success: false, error: error.message };
   }
 }
 
-//================================================================================
-// دریافت تمام ترم‌ها (فقط دسته‌بندی‌ها)
-//================================================================================
 export async function getAllTerms() {
   try {
     const [terms] = await db.query(
-      "SELECT id, name, slug, type FROM terms WHERE type = 'category' ORDER BY name ASC"
+      "SELECT id, name, slug, parent_id FROM terms ORDER BY name ASC"
     );
-    return {
-      categories: terms,
-      tags: [],
-      success: true,
-    };
+    return { categories: terms, success: true };
   } catch (error) {
     console.error("Database Error fetching terms:", error.message);
-    return { categories: [], tags: [], success: false, error: error.message };
+    return { categories: [], success: false, error: error.message };
   }
 }
 
-//================================================================================
-// جستجوی پست‌ها برای دراپ‌باکس ریدارکت (جدید) ✨
-//================================================================================
 export async function searchPostsList(query) {
   try {
     if (!query || query.length < 2) return { posts: [], success: true };
-
     const searchQuery = `%${query}%`;
     const [posts] = await db.query(
       "SELECT id, title, slug FROM posts WHERE title LIKE ? ORDER BY created_at DESC LIMIT 10",
@@ -153,9 +130,6 @@ export async function searchPostsList(query) {
   }
 }
 
-//================================================================================
-// به‌روزرسانی پست
-//================================================================================
 export async function updatePost(postId, formData) {
   const connection = await db.getConnection();
   try {
@@ -168,14 +142,11 @@ export async function updatePost(postId, formData) {
     const status = formData.get("status");
     const thumbnail = formData.get("thumbnail");
     const video_link = formData.get("video_link");
-    // ✨ دریافت فیلد redirect_url
     const redirect_url = formData.get("redirect_url");
-
     const approved = formData.get("approved") === "1" ? 1 : 0;
     const categoryIds = formData.getAll("categories").map(Number);
 
     await connection.execute(
-      // ✨ اضافه شدن redirect_url به آپدیت
       `UPDATE posts SET title = ?, slug = ?, content = ?, excerpt = ?, status = ?, thumbnail = ?, approved = ?, video_link = ?, redirect_url = ? WHERE id = ?`,
       [
         title,
@@ -204,10 +175,8 @@ export async function updatePost(postId, formData) {
     }
 
     await connection.commit();
-
     revalidatePath("/admin/posts");
     revalidatePath(`/${slug}`);
-
     return { success: true, message: "پست با موفقیت به‌روزرسانی شد." };
   } catch (error) {
     await connection.rollback();
@@ -218,9 +187,6 @@ export async function updatePost(postId, formData) {
   }
 }
 
-//================================================================================
-// ایجاد پست جدید
-//================================================================================
 export async function createPost(formData) {
   const connection = await db.getConnection();
   try {
@@ -233,14 +199,11 @@ export async function createPost(formData) {
     const status = formData.get("status");
     const thumbnail = formData.get("thumbnail");
     const video_link = formData.get("video_link");
-    // ✨ دریافت فیلد redirect_url
     const redirect_url = formData.get("redirect_url");
-
     const approved = formData.get("approved") === "1" ? 1 : 0;
     const categoryIds = formData.getAll("categories").map(Number);
 
     const [postResult] = await connection.execute(
-      // ✨ اضافه شدن redirect_url به اینسرت
       `INSERT INTO posts (title, slug, content, excerpt, status, thumbnail, approved, type, created_at, updated_at, video_link, redirect_url) VALUES (?, ?, ?, ?, ?, ?, ?, 'post', NOW(), NOW(), ?, ?)`,
       [
         title,
@@ -266,10 +229,8 @@ export async function createPost(formData) {
     }
 
     await connection.commit();
-
     revalidatePath("/admin/posts");
     revalidatePath(`/${slug}`);
-
     return {
       success: true,
       message: "پست با موفقیت ایجاد شد.",
@@ -284,9 +245,6 @@ export async function createPost(formData) {
   }
 }
 
-//================================================================================
-// ویرایش سریع (بدون تغییر)
-//================================================================================
 export async function quickEditPost(formData) {
   const connection = await db.getConnection();
   try {
@@ -302,18 +260,9 @@ export async function quickEditPost(formData) {
       [title, slug, status, postId]
     );
 
-    const [existingCategoryTerms] = await connection.query(
-      `SELECT term_id FROM post_terms pt JOIN terms t ON pt.term_id = t.id WHERE pt.post_id = ? AND t.type = 'category'`,
-      [postId]
-    );
-    const existingCategoryIds = existingCategoryTerms.map((t) => t.term_id);
-
-    if (existingCategoryIds.length > 0) {
-      await connection.query(
-        "DELETE FROM post_terms WHERE post_id = ? AND term_id IN (?)",
-        [postId, existingCategoryIds]
-      );
-    }
+    await connection.query("DELETE FROM post_terms WHERE post_id = ?", [
+      postId,
+    ]);
 
     if (categoryIds.length > 0) {
       const categoryValues = categoryIds.map((catId) => [postId, catId]);
@@ -326,7 +275,6 @@ export async function quickEditPost(formData) {
     await connection.commit();
     revalidatePath("/admin/posts");
     revalidatePath(`/${slug}`);
-
     return { success: true, message: "ویرایش سریع با موفقیت انجام شد." };
   } catch (error) {
     await connection.rollback();
@@ -337,9 +285,6 @@ export async function quickEditPost(formData) {
   }
 }
 
-//================================================================================
-// عملیات گروهی (بدون تغییر)
-//================================================================================
 export async function performBulkAction(action, postIds) {
   if (!postIds || postIds.length === 0)
     return { success: false, message: "هیچ پستی انتخاب نشده است." };
@@ -363,11 +308,11 @@ export async function performBulkAction(action, postIds) {
   }
 }
 
-//================================================================================
-// تغییر وضعیت دیدگاه (بدون تغییر)
-//================================================================================
 export async function updateCommentStatus(commentId, status) {
   try {
+    if (!["pending", "approved", "spam"].includes(status)) {
+      throw new Error("Invalid status");
+    }
     await db.execute("UPDATE comments SET status = ? WHERE id = ?", [
       status,
       commentId,
