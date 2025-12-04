@@ -3,6 +3,7 @@
 import { db } from "@/lib/db/mysql";
 import { revalidatePath } from "next/cache";
 
+// --- دریافت لیست پست‌ها برای داشبورد ---
 export async function getPosts({
   page = 1,
   limit = 15,
@@ -13,25 +14,39 @@ export async function getPosts({
 }) {
   try {
     const offset = (page - 1) * limit;
-    const searchQuery = `%${query}%`;
-    let whereClauses = ["(p.title LIKE ? OR p.content LIKE ?)"];
-    let params = [searchQuery, searchQuery];
+    const searchQuery = `%${query.trim()}%`;
 
+    // ساخت شرط‌های WHERE
+    // نکته: ما همیشه شرط جستجو را داریم (حتی اگر خالی باشد که همه را شامل می‌شود)
+    let whereClauses = ["(p.title LIKE ? OR p.content LIKE ?)"];
+    let whereParams = [searchQuery, searchQuery];
+
+    // اگر وضعیت خاصی انتخاب شده باشد، به شرط‌ها اضافه می‌کنیم
     if (
+      status &&
       status !== "all" &&
       ["published", "draft", "archived"].includes(status)
     ) {
       whereClauses.push("p.status = ?");
-      params.push(status);
+      whereParams.push(status);
     }
 
     const whereString = `WHERE ${whereClauses.join(" AND ")}`;
+
+    // اعتبارسنجی مرتب‌سازی
     const allowedSortBy = ["title", "created_at", "updated_at", "view_count"];
     const safeSortBy = allowedSortBy.includes(sortBy)
       ? `p.${sortBy}`
       : "p.created_at";
     const safeOrder = order.toLowerCase() === "asc" ? "ASC" : "DESC";
 
+    // کوئری اصلی
+    // ترتیب پارامترها باید دقیقاً منطبق با علامت سوال‌ها باشد:
+    // 1. Title Score (1 پارامتر)
+    // 2. Content Score (1 پارامتر)
+    // 3. Where Clause (2 یا 3 پارامتر بسته به وضعیت)
+    // 4. Limit (1 پارامتر)
+    // 5. Offset (1 پارامتر)
     const postsQuery = `
       SELECT p.id, p.title, p.slug, p.status, p.view_count, p.created_at, p.updated_at, p.thumbnail,
       GROUP_CONCAT(DISTINCT t.name SEPARATOR ', ') as categories,
@@ -46,16 +61,26 @@ export async function getPosts({
       LIMIT ? OFFSET ?`;
 
     const countQuery = `SELECT COUNT(*) as total FROM posts p ${whereString}`;
-    const postsQueryParams = [
-      searchQuery,
-      searchQuery,
-      ...params,
+
+    // آرایه نهایی پارامترها برای کوئری اصلی
+    const finalParams = [
+      searchQuery, // برای title_score
+      searchQuery, // برای content_score
+      ...whereParams, // شامل جستجو و وضعیت (اگر باشد)
       limit,
       offset,
     ];
 
-    const [posts] = await db.query(postsQuery, postsQueryParams);
-    const [[{ total }]] = await db.query(countQuery, params);
+    // --- لاگ برای دیباگ (در ترمینال سرور نمایش داده می‌شود) ---
+    console.log("--- Executing getPosts ---");
+    console.log("Status Filter:", status);
+    console.log("Where String:", whereString);
+    console.log("Where Params:", whereParams);
+    console.log("Final Params Count:", finalParams.length);
+    // -------------------------------------------------------
+
+    const [posts] = await db.query(postsQuery, finalParams);
+    const [[{ total }]] = await db.query(countQuery, whereParams);
 
     return { posts, total, pages: Math.ceil(total / limit), success: true };
   } catch (error) {
@@ -69,6 +94,8 @@ export async function getPosts({
     };
   }
 }
+
+// --- سایر توابع (بدون تغییر منطقی، فقط برای کامل بودن فایل) ---
 
 export async function getPostByIdForEditPage(postId) {
   try {

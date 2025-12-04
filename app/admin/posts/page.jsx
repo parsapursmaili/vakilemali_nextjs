@@ -1,20 +1,15 @@
 import { Suspense } from "react";
 import Link from "next/link";
 import { Plus, Layers, FileX2 } from "lucide-react";
-
-// ایمپورت اکشن‌ها
 import {
   getPosts,
   performBulkAction,
   quickEditPost,
   getAllTerms,
 } from "./actions";
-
-// ایمپورت کامپوننت‌های جدا شده
 import PostsList from "./components/PostsList";
 import PostFilters from "./components/PostFilters";
 
-// --- کامپوننت اسکلتون بارگذاری ---
 function TableSkeleton() {
   return (
     <div className="w-full space-y-4 animate-pulse">
@@ -33,7 +28,6 @@ function TableSkeleton() {
   );
 }
 
-// --- کامپوننت صفحه‌بندی (اصلاح شده: رنگ و ریسپانسیو) ---
 function Pagination({ currentPage, totalPages, searchParams }) {
   if (totalPages <= 1) return null;
 
@@ -44,7 +38,6 @@ function Pagination({ currentPage, totalPages, searchParams }) {
   };
 
   return (
-    // اصلاح: اضافه شدن flex-wrap برای جلوگیری از اسکرول افقی در موبایل
     <div className="flex flex-wrap justify-center mt-8 gap-2">
       {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
         <Link
@@ -54,8 +47,8 @@ function Pagination({ currentPage, totalPages, searchParams }) {
             min-w-[2.5rem] h-10 px-3 flex items-center justify-center rounded-md text-sm font-bold transition-all border
             ${
               currentPage === page
-                ? "bg-[var(--primary)] text-white border-[var(--primary)] shadow-md transform scale-105" // حالت فعال: آبی تیره تم و متن سفید
-                : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50 hover:border-gray-300 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300" // حالت عادی
+                ? "bg-[var(--primary)] text-white border-[var(--primary)] shadow-md transform scale-105"
+                : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50 hover:border-gray-300 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300"
             }
           `}
         >
@@ -66,20 +59,13 @@ function Pagination({ currentPage, totalPages, searchParams }) {
   );
 }
 
-// --- رپر داده‌ها (Data Wrapper) ---
 async function PostsDataWrapper({ query, currentPage, status, sortBy, order }) {
   const [postData, categoryData] = await Promise.all([
     getPosts({ query, page: currentPage, status, sortBy, order }),
     getAllTerms(),
   ]);
 
-  const {
-    posts,
-    total,
-    pages,
-    success: postsSuccess,
-    error: postsError,
-  } = postData;
+  const { posts, pages, success: postsSuccess, error: postsError } = postData;
   const { categories, success: termsSuccess, error: termsError } = categoryData;
 
   if (!postsSuccess || !termsSuccess) {
@@ -125,8 +111,10 @@ async function PostsDataWrapper({ query, currentPage, status, sortBy, order }) {
   );
 }
 
-// --- صفحه اصلی داشبورد ---
-export default function PostsDashboardPage({ searchParams }) {
+// تغییر مهم: تبدیل تابع به async و await کردن props.searchParams
+export default async function PostsDashboardPage(props) {
+  const searchParams = await props.searchParams;
+
   const query = searchParams?.q || "";
   const currentPage = Number(searchParams?.page) || 1;
   const status = searchParams?.status || "all";
@@ -136,7 +124,6 @@ export default function PostsDashboardPage({ searchParams }) {
   return (
     <div className="min-h-screen bg-[#f9fafb] dark:bg-gray-900 text-[var(--foreground)] pb-20">
       <div className="max-w-7xl mx-auto p-4 md:p-8 space-y-8">
-        {/* هدر صفحه */}
         <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
             <h1 className="text-2xl md:text-3xl font-extrabold text-[var(--foreground)] dark:text-white flex items-center gap-3 tracking-tight">
@@ -148,7 +135,6 @@ export default function PostsDashboardPage({ searchParams }) {
             </p>
           </div>
 
-          {/* دکمه نوشته جدید - اصلاح رنگ */}
           <Link
             href="/admin/posts/new"
             className="w-full sm:w-auto px-5 py-2.5 bg-[var(--primary)] hover:bg-[var(--primary-light)] text-white rounded-lg font-medium shadow-lg shadow-blue-900/10 flex items-center justify-center gap-2 transition-all active:scale-95"
@@ -159,7 +145,7 @@ export default function PostsDashboardPage({ searchParams }) {
         </header>
 
         <main>
-          <PostFilters query={query} status={status} />
+          <PostFilters />
 
           <Suspense fallback={<TableSkeleton />}>
             <PostsDataWrapper

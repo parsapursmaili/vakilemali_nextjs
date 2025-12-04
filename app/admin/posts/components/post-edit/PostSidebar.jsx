@@ -10,7 +10,6 @@ import {
   Clock,
   BarChart2,
   ChevronUp,
-  Library,
   Check,
   X,
   Link as LinkIcon,
@@ -18,7 +17,6 @@ import {
   Loader2,
   FileText,
   CornerDownLeft,
-  Globe,
 } from "lucide-react";
 import { searchPostsList } from "../../actions";
 
@@ -111,6 +109,40 @@ export default function PostSidebar({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // --- لاجیک مدیریت دسته‌بندی‌ها (اصلاح شده) ---
+
+  // بررسی می‌کند آیا یک دسته‌بندی انتخاب شده است یا خیر (حساسیت به نوع داده را حذف کردیم)
+  const isCategoryChecked = (catId) => {
+    const currentIds = postData.categoryIds || [];
+    if (!Array.isArray(currentIds)) return false;
+    // تبدیل هر دو طرف به عدد برای اطمینان از مقایسه صحیح
+    return currentIds.some((id) => Number(id) === Number(catId));
+  };
+
+  const handleCategoryToggle = (catId) => {
+    const numericId = Number(catId);
+    const currentIds = Array.isArray(postData.categoryIds)
+      ? postData.categoryIds
+      : [];
+    const exists = currentIds.some((id) => Number(id) === numericId);
+
+    let newIds;
+    if (exists) {
+      newIds = currentIds.filter((id) => Number(id) !== numericId);
+    } else {
+      newIds = [...currentIds, numericId];
+    }
+
+    handleInputChange({
+      target: {
+        name: "categoryIds",
+        value: newIds,
+      },
+    });
+  };
+
+  // ------------------------------------------------
+
   const handleRedirectChange = (e) => {
     const value = e.target.value;
     handleInputChange(e);
@@ -188,11 +220,10 @@ export default function PostSidebar({
                 name="slug"
                 value={postData.slug}
                 onChange={handleInputChange}
-                className="w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-600 rounded-lg pl-10 pr-3 py-2.5 text-sm font-mono text-left focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                className="w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2.5 text-sm font-mono text-left focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
                 dir="ltr"
                 required
               />
-              <Globe className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-primary transition-colors z-10" />
             </div>
           </div>
 
@@ -239,26 +270,53 @@ export default function PostSidebar({
 
         <div className="max-h-60 overflow-y-auto pr-1 space-y-0.5 scrollbar-thin scrollbar-thumb-gray-200 dark:scrollbar-thumb-gray-700">
           {filteredCategories.length > 0 ? (
-            filteredCategories.map((cat) => (
-              <label
-                key={cat.id}
-                className="flex items-center p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer group transition-colors select-none"
-              >
-                <div className="relative flex items-center justify-center">
-                  <input
-                    type="checkbox"
-                    name="categories"
-                    value={cat.id}
-                    defaultChecked={initialPost.categoryIds.includes(cat.id)}
-                    className="peer appearance-none w-5 h-5 border-2 border-gray-300 dark:border-gray-500 rounded transition-colors checked:bg-primary checked:border-primary"
-                  />
-                  <Check className="w-3 h-3 text-white absolute opacity-0 peer-checked:opacity-100 transition-opacity pointer-events-none" />
-                </div>
-                <span className="mr-3 text-sm text-gray-600 dark:text-gray-300 group-hover:text-primary dark:group-hover:text-white transition-colors">
-                  {cat.name}
-                </span>
-              </label>
-            ))
+            filteredCategories.map((cat) => {
+              // محاسبه وضعیت انتخاب در همین جا برای استفاده در رندر
+              const isSelected = isCategoryChecked(cat.id);
+
+              return (
+                <label
+                  key={cat.id}
+                  className="flex items-center p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer group transition-colors select-none relative"
+                >
+                  <div className="relative flex items-center justify-center w-5 h-5 ml-3">
+                    {/* اینپوت اصلی که دیتا را برای سرور می‌فرستد اما نامرئی است */}
+                    <input
+                      type="checkbox"
+                      name="categories" // برای FormData ضروری است
+                      value={cat.id}
+                      checked={isSelected}
+                      onChange={() => handleCategoryToggle(cat.id)}
+                      className="absolute inset-0 w-full h-full opacity-0 z-10 cursor-pointer"
+                    />
+
+                    {/* ظاهر سفارشی چک‌باکس که دقیقاً بر اساس State تغییر می‌کند */}
+                    <div
+                      className={`w-5 h-5 rounded border-2 transition-all duration-200 flex items-center justify-center ${
+                        isSelected
+                          ? "bg-primary border-primary"
+                          : "bg-transparent border-gray-300 dark:border-gray-500 group-hover:border-primary"
+                      }`}
+                    >
+                      <Check
+                        className={`w-3.5 h-3.5 text-white transition-transform duration-200 ${
+                          isSelected ? "scale-100" : "scale-0"
+                        }`}
+                      />
+                    </div>
+                  </div>
+                  <span
+                    className={`text-sm transition-colors ${
+                      isSelected
+                        ? "text-primary font-medium"
+                        : "text-gray-600 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white"
+                    }`}
+                  >
+                    {cat.name}
+                  </span>
+                </label>
+              );
+            })
           ) : (
             <div className="text-center py-6 text-gray-400">
               <LayoutList className="w-8 h-8 mx-auto mb-2 opacity-20" />

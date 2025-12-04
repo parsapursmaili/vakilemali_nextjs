@@ -13,7 +13,6 @@ import {
 } from "lucide-react";
 import QuickEditForm from "./QuickEditForm";
 
-// --- Sub-components (Helpers) ---
 const StatusBadge = ({ status }) => {
   const styles = {
     published: "bg-emerald-600 text-white shadow-emerald-200",
@@ -119,7 +118,6 @@ function MobilePostCard({ post, selected, onSelect, onQuickEdit, onDelete }) {
   );
 }
 
-// --- Main Component ---
 export default function PostsList({
   posts,
   performBulkAction,
@@ -174,13 +172,15 @@ export default function PostsList({
       <div className="bg-white p-4 rounded-xl border-2 border-gray-100 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
         <div className="flex items-center gap-3 w-full sm:w-auto">
           <div className="relative w-full sm:w-64">
-            <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+            {/* آیکون به سمت چپ منتقل شد */}
+            <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
               <ListFilter className="w-5 h-5 text-gray-400" />
             </div>
+            {/* پدینگ راست و چپ برای جلوگیری از تداخل متن و آیکون تنظیم شد */}
             <select
               onChange={handleBulkAction}
               disabled={selectedPostIds.length === 0 || isPending}
-              className="w-full pl-3 pr-10 py-2.5 bg-gray-50 border-2 border-gray-200 text-gray-700 text-sm font-bold rounded-lg focus:ring-0 focus:border-blue-500 disabled:opacity-50 cursor-pointer appearance-none transition-colors"
+              className="w-full pl-10 pr-3 py-2.5 bg-gray-50 border-2 border-gray-200 text-gray-700 text-sm font-bold rounded-lg focus:ring-0 focus:border-blue-500 disabled:opacity-50 cursor-pointer appearance-none transition-colors"
             >
               <option value="">انتخاب عملیات گروهی...</option>
               <option value="published">تغییر وضعیت: منتشر شده</option>
