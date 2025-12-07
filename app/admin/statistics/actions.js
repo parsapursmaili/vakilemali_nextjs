@@ -5,9 +5,17 @@ import moment from "jalali-moment";
 
 export async function getDashboardStatistics() {
   try {
+    // شرط مشترک برای شناسایی "پست‌های اصلی"
+    // شامل: وضعیت منتشر شده، تایپ پست، و نداشتن ریدایرکت (خالی یا NULL)
+    const mainPostCondition = `
+      status = 'published' 
+      AND type = 'post' 
+      AND (redirect_url IS NULL OR redirect_url = '')
+    `;
+
     const [
       kpiResults,
-      allPostsDates, // Get all individual post dates
+      allPostsDates,
       categoryPerformance,
       topPostsAll,
       topPostsMonth,
@@ -17,27 +25,26 @@ export async function getDashboardStatistics() {
       // 1. KPIs
       db.query(`
         SELECT
-          (SELECT COUNT(id) FROM posts WHERE status = 'published') as totalPosts,
+          (SELECT COUNT(id) FROM posts WHERE ${mainPostCondition}) as totalPosts,
           (SELECT IFNULL(SUM(view_count), 0) FROM posts WHERE status = 'published') as totalViews,
           (SELECT IFNULL(SUM(view_count), 0) FROM post_view WHERE view_date = CURDATE()) as todayViews,
           (SELECT COUNT(id) FROM comments WHERE status = 'approved') as approvedComments,
           (SELECT COUNT(id) FROM comments WHERE status = 'pending') as pendingComments;
       `),
-      // 2. Get the creation date of ALL published posts for accurate Jalali grouping
+      // 2. Get dates ONLY for main posts (for the chart)
       db.query(`
-        SELECT created_at FROM posts WHERE status = 'published'
+        SELECT created_at FROM posts WHERE ${mainPostCondition}
       `),
-      // 3. Category Performance Analysis
+      // 3. Category Performance Analysis (No changes needed based on previous request)
       db.query(`
         SELECT t.name, t.slug, COUNT(p.id) as post_count, IFNULL(SUM(p.view_count), 0) as total_views
         FROM terms t
         LEFT JOIN post_terms pt ON t.id = pt.term_id
         LEFT JOIN posts p ON pt.post_id = p.id AND p.status = 'published'
-        WHERE t.type = 'category'
         GROUP BY t.id
         ORDER BY total_views DESC;
       `),
-      // 4. Top posts
+      // 4. Top posts (Keeping general published posts or you can apply mainPostCondition if needed)
       db.query(
         `SELECT id, title, slug, view_count as views FROM posts WHERE status = 'published' AND view_count > 0 ORDER BY view_count DESC LIMIT 5;`
       ),
@@ -57,10 +64,8 @@ export async function getDashboardStatistics() {
 
     moment.locale("fa");
 
-    // --- Accurate Jalali Month Grouping Logic ---
     const jalaliMonthlyCounts = {};
 
-    // 1. Iterate through each post and group by its Jalali month
     for (const post of allPostsDates[0]) {
       const jalaliMonthKey = moment(post.created_at).format("jYYYY-jMM");
       if (jalaliMonthlyCounts[jalaliMonthKey]) {
@@ -70,18 +75,15 @@ export async function getDashboardStatistics() {
       }
     }
 
-    // 2. Convert the grouped object into the final array for the chart
     const contentData = Object.keys(jalaliMonthlyCounts)
-      .sort() // Sort keys chronologically (e.g., '1403-12' comes before '1404-01')
+      .sort()
       .map((jalaliMonthKey) => {
         return {
-          name: moment(jalaliMonthKey, "jYYYY-jMM").format("jMMMM jYYYY"), // Correctly format name e.g., "آبان ۱۴۰۴"
+          name: moment(jalaliMonthKey, "jYYYY-jMM").format("jMMMM jYYYY"),
           "تعداد پست": jalaliMonthlyCounts[jalaliMonthKey],
         };
       });
-    // --- End of Jalali Grouping Logic ---
 
-    // Return the final processed data
     return {
       kpis: kpiResults[0][0],
       contentTrend: contentData,
@@ -113,7 +115,7 @@ export async function getDashboardStatistics() {
       categoryPerformance: [],
       topPosts: { allTime: [], month: [], day: [] },
       recentComments: [],
-      error: "خطا در دریافت اطلاعات داشبورد. لطفاً لاگ سرور را بررسی کنید.",
+      error: "خطا در دریافت اطلاعات داشبورد",
     };
   }
 }
