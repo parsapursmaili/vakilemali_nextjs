@@ -14,7 +14,6 @@ const ConsultationCTA = ({ phoneNumber, telegramId }) => {
             width={120}
             height={120}
             className="rounded-full border-4 border-white dark:border-muted/50 shadow-md object-cover"
-            unoptimized
           />
         </div>
 

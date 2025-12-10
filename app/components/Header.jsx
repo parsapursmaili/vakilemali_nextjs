@@ -166,6 +166,7 @@ const Header = () => {
               <NavLink href="/">صفحه اصلی</NavLink>
               <NavLink href="/articles">مقالات حقوقی</NavLink>
               <NavLink href="/contact">تماس با ما</NavLink>
+              <NavLink href="/about-us">درباره ما</NavLink>
             </nav>
           </div>
 
@@ -241,6 +242,13 @@ const Header = () => {
                 className="text-2xl font-bold text-foreground hover:text-accent transition-all hover:scale-105"
               >
                 تماس با ما
+              </Link>
+              <Link
+                href="/about-us"
+                onClick={() => setIsMenuOpen(false)}
+                className="text-2xl font-bold text-foreground hover:text-accent transition-all hover:scale-105"
+              >
+                درباره ما
               </Link>
             </nav>
 
