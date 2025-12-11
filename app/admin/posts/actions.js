@@ -1,9 +1,8 @@
 "use server";
 
 import { db } from "@/lib/db/mysql";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 
-// --- دریافت لیست پست‌ها برای داشبورد ---
 export async function getPosts({
   page = 1,
   limit = 15,
@@ -16,12 +15,9 @@ export async function getPosts({
     const offset = (page - 1) * limit;
     const searchQuery = `%${query.trim()}%`;
 
-    // ساخت شرط‌های WHERE
-    // نکته: ما همیشه شرط جستجو را داریم (حتی اگر خالی باشد که همه را شامل می‌شود)
     let whereClauses = ["(p.title LIKE ? OR p.content LIKE ?)"];
     let whereParams = [searchQuery, searchQuery];
 
-    // اگر وضعیت خاصی انتخاب شده باشد، به شرط‌ها اضافه می‌کنیم
     if (
       status &&
       status !== "all" &&
@@ -32,21 +28,12 @@ export async function getPosts({
     }
 
     const whereString = `WHERE ${whereClauses.join(" AND ")}`;
-
-    // اعتبارسنجی مرتب‌سازی
     const allowedSortBy = ["title", "created_at", "updated_at", "view_count"];
     const safeSortBy = allowedSortBy.includes(sortBy)
       ? `p.${sortBy}`
       : "p.created_at";
     const safeOrder = order.toLowerCase() === "asc" ? "ASC" : "DESC";
 
-    // کوئری اصلی
-    // ترتیب پارامترها باید دقیقاً منطبق با علامت سوال‌ها باشد:
-    // 1. Title Score (1 پارامتر)
-    // 2. Content Score (1 پارامتر)
-    // 3. Where Clause (2 یا 3 پارامتر بسته به وضعیت)
-    // 4. Limit (1 پارامتر)
-    // 5. Offset (1 پارامتر)
     const postsQuery = `
       SELECT p.id, p.title, p.slug, p.status, p.view_count, p.created_at, p.updated_at, p.thumbnail,
       GROUP_CONCAT(DISTINCT t.name SEPARATOR ', ') as categories,
@@ -62,22 +49,13 @@ export async function getPosts({
 
     const countQuery = `SELECT COUNT(*) as total FROM posts p ${whereString}`;
 
-    // آرایه نهایی پارامترها برای کوئری اصلی
     const finalParams = [
-      searchQuery, // برای title_score
-      searchQuery, // برای content_score
-      ...whereParams, // شامل جستجو و وضعیت (اگر باشد)
+      searchQuery,
+      searchQuery,
+      ...whereParams,
       limit,
       offset,
     ];
-
-    // --- لاگ برای دیباگ (در ترمینال سرور نمایش داده می‌شود) ---
-    console.log("--- Executing getPosts ---");
-    console.log("Status Filter:", status);
-    console.log("Where String:", whereString);
-    console.log("Where Params:", whereParams);
-    console.log("Final Params Count:", finalParams.length);
-    // -------------------------------------------------------
 
     const [posts] = await db.query(postsQuery, finalParams);
     const [[{ total }]] = await db.query(countQuery, whereParams);
@@ -94,8 +72,6 @@ export async function getPosts({
     };
   }
 }
-
-// --- سایر توابع (بدون تغییر منطقی، فقط برای کامل بودن فایل) ---
 
 export async function getPostByIdForEditPage(postId) {
   try {
@@ -162,6 +138,12 @@ export async function updatePost(postId, formData) {
   try {
     await connection.beginTransaction();
 
+    const [oldData] = await connection.execute(
+      "SELECT slug FROM posts WHERE id = ?",
+      [postId]
+    );
+    const oldSlug = oldData[0]?.slug;
+
     const title = formData.get("title");
     const slug = formData.get("slug");
     const content = formData.get("content");
@@ -174,7 +156,7 @@ export async function updatePost(postId, formData) {
     const categoryIds = formData.getAll("categories").map(Number);
 
     await connection.execute(
-      `UPDATE posts SET title = ?, slug = ?, content = ?, excerpt = ?, status = ?, thumbnail = ?, approved = ?, video_link = ?, redirect_url = ? WHERE id = ?`,
+      `UPDATE posts SET title = ?, slug = ?, content = ?, excerpt = ?, status = ?, thumbnail = ?, approved = ?, video_link = ?, redirect_url = ?, updated_at = NOW() WHERE id = ?`,
       [
         title,
         slug,
@@ -202,8 +184,17 @@ export async function updatePost(postId, formData) {
     }
 
     await connection.commit();
+
+    // Invalidating Tags
+    revalidateTag("posts-list");
+    if (oldSlug) revalidateTag(`post-${oldSlug}`);
+    revalidateTag(`post-${slug}`);
+
+    // Invalidating Paths (Fallback)
     revalidatePath("/admin/posts");
+    if (oldSlug) revalidatePath(`/${oldSlug}`);
     revalidatePath(`/${slug}`);
+
     return { success: true, message: "پست با موفقیت به‌روزرسانی شد." };
   } catch (error) {
     await connection.rollback();
@@ -256,8 +247,10 @@ export async function createPost(formData) {
     }
 
     await connection.commit();
+
+    revalidateTag("posts-list");
     revalidatePath("/admin/posts");
-    revalidatePath(`/${slug}`);
+
     return {
       success: true,
       message: "پست با موفقیت ایجاد شد.",
@@ -276,14 +269,21 @@ export async function quickEditPost(formData) {
   const connection = await db.getConnection();
   try {
     await connection.beginTransaction();
+
     const postId = formData.get("postId");
+    const [oldData] = await connection.execute(
+      "SELECT slug FROM posts WHERE id = ?",
+      [postId]
+    );
+    const oldSlug = oldData[0]?.slug;
+
     const title = formData.get("title");
     const slug = formData.get("slug");
     const status = formData.get("status");
     const categoryIds = formData.getAll("categories").map(Number);
 
     await connection.execute(
-      "UPDATE posts SET title = ?, slug = ?, status = ? WHERE id = ?",
+      "UPDATE posts SET title = ?, slug = ?, status = ?, updated_at = NOW() WHERE id = ?",
       [title, slug, status, postId]
     );
 
@@ -300,8 +300,13 @@ export async function quickEditPost(formData) {
     }
 
     await connection.commit();
+
+    revalidateTag("posts-list");
+    if (oldSlug) revalidateTag(`post-${oldSlug}`);
+    revalidateTag(`post-${slug}`);
+
     revalidatePath("/admin/posts");
-    revalidatePath(`/${slug}`);
+
     return { success: true, message: "ویرایش سریع با موفقیت انجام شد." };
   } catch (error) {
     await connection.rollback();
@@ -327,7 +332,10 @@ export async function performBulkAction(action, postIds) {
       return { success: false, message: "عملیات نامعتبر است." };
     }
     await db.query(query, params);
+
+    revalidateTag("posts-list");
     revalidatePath("/admin/posts");
+
     return { success: true, message: "عملیات گروهی با موفقیت انجام شد." };
   } catch (error) {
     console.error("Database Error in bulk action:", error.message);
@@ -340,11 +348,27 @@ export async function updateCommentStatus(commentId, status) {
     if (!["pending", "approved", "spam"].includes(status)) {
       throw new Error("Invalid status");
     }
+
+    // گرفتن پست آیدی برای آپدیت کش آن صفحه (اختیاری)
+    const [comment] = await db.query(
+      "SELECT post_id FROM comments WHERE id = ?",
+      [commentId]
+    );
+    const postId = comment[0]?.post_id;
+
     await db.execute("UPDATE comments SET status = ? WHERE id = ?", [
       status,
       commentId,
     ]);
-    revalidatePath("/admin/posts/[id]", "page");
+
+    if (postId) {
+      const [post] = await db.query("SELECT slug FROM posts WHERE id = ?", [
+        postId,
+      ]);
+      if (post[0]?.slug) revalidateTag(`post-${post[0].slug}`);
+    }
+
+    revalidatePath("/admin/posts");
     return { success: true, message: "وضعیت دیدگاه تغییر کرد." };
   } catch (error) {
     console.error("Database Error updating comment status:", error.message);
