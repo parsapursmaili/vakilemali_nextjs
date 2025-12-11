@@ -12,16 +12,6 @@ export const vazir = localFont({
       weight: "700",
       style: "normal",
     },
-    {
-      path: "../public/fonts/Vazir-Bold.ttf",
-      weight: "700",
-      style: "normal",
-    },
-    {
-      path: "../public/fonts/Vazir-Medium.ttf",
-      weight: "400",
-      style: "normal",
-    },
   ],
   variable: "--font-vazir",
   display: "swap",
