@@ -7,6 +7,7 @@ const nextConfig = {
   experimental: {
     serverActions: {},
   },
+  output: "standalone",
   images: {
     loader: "custom",
     loaderFile: "./customImageLoader.js",

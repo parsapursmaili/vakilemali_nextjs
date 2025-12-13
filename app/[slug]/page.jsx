@@ -267,8 +267,8 @@ export default async function SinglePostPage({ params }) {
 
         <div className="w-full sm:max-w-4xl sm:mx-auto mt-10 px-4 sm:px-0 space-y-12 mb-20">
           <ConsultationCTA
-            phoneNumber={CTA_PHONE_NUMBER}
-            telegramId={CTA_TELEGRAM_ID}
+            phoneNumber="09002450090"
+            categorySlug={primaryCategory?.slug}
           />
           <PostsSlider title="مطالب پیشنهادی" posts={relatedPosts} />
           <PostCommentsSection postId={post.id} postSlug={slug} />
@@ -278,6 +278,7 @@ export default async function SinglePostPage({ params }) {
       <FloatingCTA
         phoneNumber={CTA_PHONE_NUMBER}
         telegramId={CTA_TELEGRAM_ID}
+        categorySlug={primaryCategory?.slug}
       />
     </>
   );

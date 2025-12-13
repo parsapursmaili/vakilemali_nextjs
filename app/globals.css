@@ -352,7 +352,7 @@ tbody tr:nth-child(even) {
   height: 3px !important; /* مطابق با ارتفاع در کامپوننت React */
 
   /* استفاده از رنگ یکدست طلایی (var(--accent)) به جای گرادیانت برای ثبات بیشتر رنگ */
-  background: var(--accent) !important;
+  background: var(--accent);
 
   /* تنظیم سایه بر اساس تنظیمات کامپوننت */
   box-shadow: 0 0 10px var(--accent), 0 0 5px var(--accent);
@@ -364,7 +364,7 @@ tbody tr:nth-child(even) {
   right: 0px;
   width: 100px;
   height: 100%;
-  box-shadow: 0 0 10px var(--accent), 0 0 5px var(--accent) !important;
+  box-shadow: 0 0 10px var(--accent), 0 0 5px var(--accent);
   opacity: 1;
   transform: rotate(3deg) translate(0px, -4px);
 }

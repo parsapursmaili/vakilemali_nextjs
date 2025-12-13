@@ -4,11 +4,8 @@ import "./globals.css";
 import { vazir } from "./font.js";
 import Header from "@/components/Header.jsx";
 import ProgressBarProvider from "@/components/ProgressBarProvider.jsx";
-const AdminBar = dynamic(
-  () => import("@/components/AdminBar").then((mod) => mod.AdminBar),
-  {
-    ssr: false, // نیازی به رندر سمت سرور برای این کامپوننت کلاینت نیست.
-  }
+const AdminBar = dynamic(() =>
+  import("@/components/AdminBar").then((mod) => mod.AdminBar)
 );
 import Script from "next/script";
 
