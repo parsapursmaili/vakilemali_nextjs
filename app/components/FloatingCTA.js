@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
-import { Phone, X, MessageSquareText, ChevronUp } from "lucide-react";
+import { Phone, X, ChevronUp } from "lucide-react";
 
 // آیکون واتساپ
 const WhatsAppIcon = ({ className }) => (
@@ -22,7 +22,7 @@ export default function FloatingCTA({ phoneNumber, categorySlug }) {
   const [isClosed, setIsClosed] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
   const pathname = usePathname();
-
+  console.log("cat:", categorySlug);
   const SCROLL_TRIGGER = 150;
   const HIDDEN_ROUTES = ["/contact", "/login", "/admin"];
 
@@ -120,7 +120,7 @@ export default function FloatingCTA({ phoneNumber, categorySlug }) {
 
   return (
     <>
-      {/* --- دکمه بازکردن مینیمال (Mini Pill) --- */}
+      {/* --- دکمه بازکردن مینیمال --- */}
       <button
         onClick={handleReopen}
         className={`fixed bottom-5 left-5 z-[9998] group flex items-center gap-2.5 
@@ -134,16 +134,13 @@ export default function FloatingCTA({ phoneNumber, categorySlug }) {
             : "translate-y-[200%] opacity-0 scale-90 pointer-events-none"
         }`}
       >
-        {/* انیمیشن پالس زنده بودن */}
         <span className="relative flex h-2.5 w-2.5">
           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
           <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500"></span>
         </span>
-
         <span className="text-[13px] font-bold text-white/95 tracking-wide">
           مشاوره
         </span>
-
         <ChevronUp
           size={16}
           className="text-white/70 group-hover:text-white transition-colors"
@@ -167,9 +164,12 @@ export default function FloatingCTA({ phoneNumber, categorySlug }) {
         )}
 
         <div className="bg-[var(--primary)] border-t-2 border-[var(--accent)] shadow-[0_-4px_30px_rgba(0,0,0,0.4)]">
-          <div className="w-full max-w-[1100px] mx-auto px-3 py-3 md:py-4">
+          {/* تغییر اصلی اینجاست: pt-3 pb-5 */}
+          {/* این یعنی محتوا از بالا 12 پیکسل و از پایین 20 پیکسل فاصله دارد */}
+          {/* این باعث میشه محتوا کمی بالا بیاد ولی باکس همچنان به پایین چسبیده باشه */}
+          <div className="w-full max-w-[1100px] mx-auto px-3 pt-4 pb-5 md:py-7">
             <div className="flex flex-col md:flex-row items-center justify-between gap-3">
-              <div className="flex-1 text-right space-y-1.5">
+              <div className="flex-1 text-right space-y-0.5 -mt-3.5 md:-mt-4">
                 <h3 className="font-vazir font-black !text-white text-[15px] md:text-lg leading-tight">
                   {currentData.hook}
                 </h3>
@@ -182,7 +182,7 @@ export default function FloatingCTA({ phoneNumber, categorySlug }) {
                   </span>
                   <span className="whitespace-nowrap">✔ +۱۳ سال سابقه</span>
                   <span className="whitespace-nowrap">
-                    ✔ ۳۰ دقیقه مشاوره با وکیل متخصص فقط ۱۷۹٬۰۰۰ تومان
+                    ✔ ۳۰ دقیقه مشاوره فقط ۱۷۹٬۰۰۰ تومان
                   </span>
                 </div>
               </div>
@@ -208,11 +208,11 @@ export default function FloatingCTA({ phoneNumber, categorySlug }) {
                   className="flex-[2] md:flex-none flex items-center justify-center gap-2 h-full px-4 md:px-7 rounded-lg bg-[#25D366] hover:bg-[#20bd5a] shadow-[0_4px_15px_rgba(37,211,102,0.3)] transition-all active:scale-95"
                 >
                   <WhatsAppIcon className="w-5 h-5 md:w-6 md:h-6 fill-white" />
-                  <div className="flex flex-col items-start leading-none">
-                    <span className="font-black text-[13px] md:text-[15px] text-white">
-                      ارسال مدارک
+                  <div className="flex flex-col items-start leading-none justify-center">
+                    <span className="font-black text-[12px] md:text-[14px] text-white leading-tight">
+                      مشاوره اولیه رایگان در واتساپ
                     </span>
-                    <span className="text-[10px] md:text-[11px] text-white/90 font-medium">
+                    <span className="text-[10px] md:text-[11px] text-white/90 font-medium mt-0.5">
                       بررسی توسط وکیل
                     </span>
                   </div>

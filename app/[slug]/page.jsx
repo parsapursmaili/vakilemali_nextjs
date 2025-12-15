@@ -280,6 +280,7 @@ export default async function SinglePostPage({ params }) {
         telegramId={CTA_TELEGRAM_ID}
         categorySlug={primaryCategory?.slug}
       />
+      {console.log("CAT:", categories)}
     </>
   );
 }
