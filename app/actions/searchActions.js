@@ -28,7 +28,7 @@ export async function searchPosts({ query, page = 1, limit = 20 }) {
             id, title, slug, excerpt, thumbnail, created_at, 
             1 AS sort_priority
           FROM posts
-          WHERE status = 'published' AND type = 'post' and redirect_url= NULL AND title LIKE ?
+          WHERE status = 'published' AND type = 'post' and redirect_url is NULL AND title LIKE ?
         )
         UNION
         (
@@ -36,7 +36,7 @@ export async function searchPosts({ query, page = 1, limit = 20 }) {
             id, title, slug, excerpt, thumbnail, created_at, 
             2 AS sort_priority
           FROM posts
-          WHERE status = 'published' AND type = 'post' redirect_url= NULL AND content LIKE ? AND title NOT LIKE ?
+          WHERE status = 'published' AND type = 'post' and redirect_url is NULL AND content LIKE ? AND title NOT LIKE ?
         )
       ) AS search_results
       ORDER BY 

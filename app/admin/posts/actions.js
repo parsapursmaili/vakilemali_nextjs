@@ -152,7 +152,7 @@ export async function updatePost(postId, formData) {
     const thumbnail = formData.get("thumbnail");
 
     // تغییر: اگر مقدار خالی بود، null قرار بده
-    const video_link = formData.get("video_link") || null;
+    const video_link = formData.get("video_link") || "";
     const redirect_url = formData.get("redirect_url") || null;
 
     const approved = formData.get("approved") === "1" ? 1 : 0;
@@ -221,7 +221,7 @@ export async function createPost(formData) {
     const thumbnail = formData.get("thumbnail");
 
     // تغییر: اگر مقدار خالی بود، null قرار بده
-    const video_link = formData.get("video_link") || null;
+    const video_link = formData.get("video_link") || "";
     const redirect_url = formData.get("redirect_url") || null;
 
     const approved = formData.get("approved") === "1" ? 1 : 0;
