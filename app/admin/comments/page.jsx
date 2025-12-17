@@ -1,958 +1,357 @@
 "use client";
 
-import { useState, useTransition, useEffect, useRef } from "react";
+import { useState, useTransition, useEffect } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   Trash2,
   CheckCircle,
   Clock,
-  AlertTriangle,
-  ChevronDown,
-  Pencil,
-  X,
-  ChevronLeft,
-  ChevronRight,
-  MoreVertical,
-  ShieldCheck,
   ShieldAlert,
-  Edit,
-  Reply,
+  ChevronRight,
+  ChevronLeft,
+  ChevronDown,
+  X,
+  Filter,
+  LayoutList,
 } from "lucide-react";
+import { getComments, updateCommentsStatus, deleteComments } from "./actions";
 import {
-  getComments,
-  updateCommentsStatus,
-  deleteComments,
-  updateCommentDetails,
-  addCommentReply,
-} from "./actions";
+  DesktopCommentRow,
+  MobileCommentCard,
+  EditCommentModal,
+  ReplyCommentModal,
+} from "./components";
 
-const COMMENTS_PER_PAGE = 50;
-
-// =================================================================================
-// توابع کمکی
-// =================================================================================
-
-/**
- * ساختاردهی کامنت‌های مسطح به صورت درختی بر اساس parent_id
- */
+// ساختار درختی
 function nestComments(flatComments) {
   const commentMap = {};
-  const nestedComments = [];
-
-  flatComments.forEach((comment) => {
-    commentMap[comment.id] = { ...comment, children: [] };
-  });
-
-  flatComments.forEach((comment) => {
-    if (comment.parent_id && commentMap[comment.parent_id]) {
-      commentMap[comment.parent_id].children.push(commentMap[comment.id]);
-    } else if (!comment.parent_id) {
-      nestedComments.push(commentMap[comment.id]);
+  const nested = [];
+  flatComments.forEach((c) => (commentMap[c.id] = { ...c, children: [] }));
+  flatComments.forEach((c) => {
+    if (c.parent_id && commentMap[c.parent_id]) {
+      commentMap[c.parent_id].children.push(commentMap[c.id]);
+    } else if (!c.parent_id) {
+      nested.push(commentMap[c.id]);
     }
   });
-
-  return nestedComments;
+  return nested;
 }
 
-// =================================================================================
-// کامپوننت‌های کمکی
-// =================================================================================
+export default function CommentsAdminPage() {
+  const [comments, setComments] = useState([]); // لیست فلت برای محاسبات ایندکس
+  const [nestedData, setNestedData] = useState([]);
+  const [total, setTotal] = useState(0);
 
-function StatusBadge({ status }) {
-  const config = {
-    approved: {
-      icon: <CheckCircle className="w-4 h-4" />,
-      text: "تایید شده",
-      color:
-        "text-green-800 bg-green-100 dark:text-green-200 dark:bg-green-900",
-    },
-    pending: {
-      icon: <Clock className="w-4 h-4" />,
-      text: "در انتظار",
-      color:
-        "text-yellow-800 bg-yellow-100 dark:text-yellow-200 dark:bg-yellow-900",
-    },
-    spam: {
-      icon: <AlertTriangle className="w-4 h-4" />,
-      text: "اسپم",
-      color: "text-red-800 bg-red-100 dark:text-red-200 dark:bg-red-900",
-    },
-  }[status] || {
-    icon: <Clock className="w-4 h-4" />,
-    text: "در انتظار",
-    color: "text-yellow-800 bg-yellow-100",
-  };
-  return (
-    <span
-      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${config.color}`}
-    >
-      {config.icon}
-      {config.text}
-    </span>
-  );
-}
+  // وضعیت انتخاب
+  const [selected, setSelected] = useState([]);
+  const [lastSelectedId, setLastSelectedId] = useState(null); // برای شیفت کلیک
 
-function EditCommentModal({ comment, onClose, onSave }) {
-  const [formData, setFormData] = useState({
-    author_name: comment.author_name,
-    author_email: comment.author_email || "",
-    content: comment.content,
-  });
+  const [editTarget, setEditTarget] = useState(null);
+  const [replyTarget, setReplyTarget] = useState(null);
   const [isPending, startTransition] = useTransition();
-  const handleChange = (e) =>
-    setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
-  const handleSubmit = (e) => {
-    e.preventDefault();
+
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const statusFilter = searchParams.get("status") || "all";
+  const page = Number(searchParams.get("page")) || 1;
+
+  const fetchData = () => {
     startTransition(async () => {
-      const result = await updateCommentDetails(comment.id, formData);
-      if (result.success) {
-        onSave({ ...comment, ...formData });
-        onClose();
-      } else {
-        alert(result.error || "خطایی رخ داد.");
-      }
+      const { comments: data, totalComments } = await getComments({
+        filterStatus: statusFilter,
+        page,
+      });
+      setComments(data);
+      setNestedData(nestComments(data));
+      setTotal(totalComments);
+      setSelected([]);
+      setLastSelectedId(null);
     });
   };
-  return (
-    <div
-      className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4"
-      onClick={onClose}
-    >
-      <div
-        className="bg-white dark:bg-[#1a1a1a] rounded-xl shadow-2xl w-full max-w-2xl border border-muted/30"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <header className="flex items-center justify-between p-4 border-b border-muted/30">
-          <h2 className="text-xl font-bold text-primary">ویرایش نظر</h2>
-          <button
-            onClick={onClose}
-            className="p-1 rounded-full text-muted-foreground hover:bg-muted/50"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </header>
-        <form onSubmit={handleSubmit}>
-          <div className="p-6 space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label
-                  htmlFor="author_name"
-                  className="block text-sm font-medium mb-1"
-                >
-                  نام نویسنده
-                </label>
-                <input
-                  type="text"
-                  id="author_name"
-                  name="author_name"
-                  value={formData.author_name}
-                  onChange={handleChange}
-                  className="input"
-                  required
-                />
-              </div>
-              <div>
-                <label
-                  htmlFor="author_email"
-                  className="block text-sm font-medium mb-1"
-                >
-                  ایمیل (اختیاری)
-                </label>
-                <input
-                  type="email"
-                  id="author_email"
-                  name="author_email"
-                  value={formData.author_email}
-                  onChange={handleChange}
-                  className="input"
-                />
-              </div>
-            </div>
-            <div>
-              <label
-                htmlFor="content"
-                className="block text-sm font-medium mb-1"
-              >
-                متن نظر
-              </label>
-              <textarea
-                id="content"
-                name="content"
-                value={formData.content}
-                onChange={handleChange}
-                rows="6"
-                className="input"
-                required
-              ></textarea>
-            </div>
-          </div>
-          <footer className="flex items-center justify-end gap-3 p-4 bg-muted/50 dark:bg-muted/20 rounded-b-xl">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 rounded-md text-sm font-semibold border hover:bg-muted"
-            >
-              انصراف
-            </button>
-            <button
-              type="submit"
-              disabled={isPending}
-              className="px-4 py-2 rounded-md text-sm font-semibold text-white bg-primary hover:bg-primary-light disabled:opacity-60"
-            >
-              {isPending ? "در حال ذخیره..." : "ذخیره تغییرات"}
-            </button>
-          </footer>
-        </form>
-      </div>
-    </div>
-  );
-}
 
-function ReplyCommentModal({ parentComment, onClose, onReplySuccess }) {
-  const [formData, setFormData] = useState({
-    author_name: "مرضیه توانگر", // نام پیش فرض
-    author_email: "",
-    content: "",
-  });
-  const [isPending, startTransition] = useTransition();
+  useEffect(() => {
+    fetchData();
+  }, [statusFilter, page]);
 
-  const handleChange = (e) =>
-    setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (!formData.author_name.trim() || !formData.content.trim()) {
-      alert("نام نویسنده و متن پاسخ الزامی هستند.");
+  // --- هندل کردن انتخاب با پشتیبانی از Shift ---
+  const handleSelect = (id, event) => {
+    // اگر فقط چک باکس کلیک شده (بدون شیفت)
+    if (!event?.nativeEvent?.shiftKey) {
+      setSelected((prev) => {
+        if (prev.includes(id)) return prev.filter((item) => item !== id);
+        return [...prev, id];
+      });
+      setLastSelectedId(id);
       return;
     }
 
-    startTransition(async () => {
-      const result = await addCommentReply({
-        parent_id: parentComment.id,
-        post_id: parentComment.post_id,
-        author_name: formData.author_name,
-        author_email: formData.author_email,
-        content: formData.content,
-      });
-      if (result.success) {
-        onReplySuccess();
-        onClose();
-        alert("پاسخ با موفقیت ثبت شد و در انتظار تایید است.");
-      } else {
-        alert(result.error || "خطایی رخ داد.");
-      }
-    });
-  };
-
-  return (
-    <div
-      className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4"
-      onClick={onClose}
-    >
-      <div
-        className="bg-white dark:bg-[#1a1a1a] rounded-xl shadow-2xl w-full max-w-2xl border border-muted/30"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <header className="flex items-center justify-between p-4 border-b border-muted/30">
-          <h2 className="text-xl font-bold text-primary">پاسخ به نظر</h2>
-          <button
-            onClick={onClose}
-            className="p-1 rounded-full text-muted-foreground hover:bg-muted/50"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </header>
-        <form onSubmit={handleSubmit}>
-          <div className="p-6 space-y-4">
-            <div className="p-3 bg-muted/50 dark:bg-muted/20 rounded-lg border border-muted/30">
-              <span className="text-xs font-medium text-muted-foreground">
-                در پاسخ به:{" "}
-              </span>
-              <p className="mt-1 text-sm italic line-clamp-2">
-                {parentComment.content}
-              </p>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label
-                  htmlFor="reply_author_name"
-                  className="block text-sm font-medium mb-1"
-                >
-                  نام نویسنده
-                </label>
-                <input
-                  type="text"
-                  id="reply_author_name"
-                  name="author_name"
-                  value={formData.author_name}
-                  onChange={handleChange}
-                  className="input"
-                  required
-                />
-              </div>
-              <div>
-                <label
-                  htmlFor="reply_author_email"
-                  className="block text-sm font-medium mb-1"
-                >
-                  ایمیل (اختیاری)
-                </label>
-                <input
-                  type="email"
-                  id="reply_author_email"
-                  name="author_email"
-                  value={formData.author_email}
-                  onChange={handleChange}
-                  className="input"
-                />
-              </div>
-            </div>
-            <div>
-              <label
-                htmlFor="reply_content"
-                className="block text-sm font-medium mb-1"
-              >
-                متن پاسخ
-              </label>
-              <textarea
-                id="reply_content"
-                name="content"
-                value={formData.content}
-                onChange={handleChange}
-                rows="6"
-                className="input"
-                required
-              ></textarea>
-            </div>
-          </div>
-          <footer className="flex items-center justify-end gap-3 p-4 bg-muted/50 dark:bg-muted/20 rounded-b-xl">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 rounded-md text-sm font-semibold border hover:bg-muted"
-            >
-              انصراف
-            </button>
-            <button
-              type="submit"
-              disabled={isPending}
-              className="px-4 py-2 rounded-md text-sm font-semibold text-white bg-primary hover:bg-primary-light disabled:opacity-60"
-            >
-              {isPending ? "در حال ارسال..." : "ارسال پاسخ"}
-            </button>
-          </footer>
-        </form>
-      </div>
-    </div>
-  );
-}
-
-function Pagination({ totalItems, itemsPerPage, currentPage }) {
-  const totalPages = Math.ceil(totalItems / itemsPerPage);
-  const searchParams = useSearchParams();
-  if (totalPages <= 1) return null;
-  const createPageURL = (pageNumber) => {
-    const params = new URLSearchParams(searchParams);
-    params.set("page", pageNumber.toString());
-    return `/admin/comments?${params.toString()}`;
-  };
-  return (
-    <nav className="flex items-center justify-center gap-4 p-4 border-t border-muted/30">
-      <Link
-        href={createPageURL(currentPage - 1)}
-        className={`flex items-center gap-1 px-3 py-2 text-sm font-medium rounded-md ${
-          currentPage === 1
-            ? "text-muted-foreground bg-muted/50 pointer-events-none"
-            : "hover:bg-muted"
-        }`}
-      >
-        <ChevronRight className="w-4 h-4" />
-        <span>قبلی</span>
-      </Link>
-      <span className="text-sm text-foreground/80">
-        صفحه <strong className="font-bold text-primary">{currentPage}</strong>{" "}
-        از <strong className="font-bold">{totalPages}</strong>
-      </span>
-      <Link
-        href={createPageURL(currentPage + 1)}
-        className={`flex items-center gap-1 px-3 py-2 text-sm font-medium rounded-md ${
-          currentPage === totalPages
-            ? "text-muted-foreground bg-muted/50 pointer-events-none"
-            : "hover:bg-muted"
-        }`}
-      >
-        <span>بعدی</span>
-        <ChevronLeft className="w-4 h-4" />
-      </Link>
-    </nav>
-  );
-}
-
-function DesktopCommentRow({
-  comment,
-  level = 0,
-  selectedComments,
-  onSelectComment,
-  onEditComment,
-  onReplyComment,
-}) {
-  const isSelected = selectedComments.includes(comment.id);
-
-  const paddingRight = `${1 + (level + 1) * 1.5}rem`;
-
-  return (
-    <>
-      <tr
-        key={comment.id}
-        className={`border-b border-muted/30 transition-colors ${
-          isSelected ? "bg-primary/10" : "hover:bg-muted/40"
-        }`}
-      >
-        <td
-          className="p-4 flex items-center gap-2"
-          style={{ paddingRight: paddingRight }}
-        >
-          <input
-            type="checkbox"
-            className="form-checkbox h-5 w-5 rounded text-primary focus:ring-primary/50"
-            checked={isSelected}
-            onChange={(e) => onSelectComment(comment.id, e)}
-          />
-          {level > 0 && (
-            <span className="text-primary/70" title="پاسخ به یک کامنت دیگر">
-              <ChevronLeft className="w-3 h-3" />
-            </span>
-          )}
-        </td>
-        <td className="p-4 align-top">
-          <div className="font-bold">{comment.author_name}</div>
-          {comment.author_email && (
-            <div className="text-xs text-foreground/70 mt-1">
-              {comment.author_email}
-            </div>
-          )}
-        </td>
-        <td className="p-4 align-top max-w-sm">
-          <p className="leading-relaxed line-clamp-4">{comment.content}</p>
-        </td>
-        <td className="p-4 align-top">
-          <Link
-            href={`/${comment.post_slug}`}
-            className="text-primary hover:underline"
-            target="_blank"
-          >
-            {comment.post_title}
-          </Link>
-        </td>
-        <td className="p-4 align-top">
-          <StatusBadge status={comment.status} />
-        </td>
-        <td className="p-4 align-top text-xs whitespace-nowrap">
-          {new Date(comment.created_at).toLocaleDateString("fa-IR", {
-            year: "numeric",
-            month: "long",
-            day: "numeric",
-          })}
-        </td>
-        <td className="p-4 align-top whitespace-nowrap">
-          <button
-            onClick={() => onReplyComment(comment)}
-            className="p-2 rounded-md hover:bg-muted text-muted-foreground hover:text-green-600"
-            title="پاسخ دادن"
-          >
-            <ShieldCheck className="w-4 h-4" />
-          </button>
-          <button
-            onClick={() => onEditComment(comment)}
-            className="p-2 rounded-md hover:bg-muted text-muted-foreground hover:text-primary mr-1"
-            title="ویرایش"
-          >
-            <Pencil className="w-4 h-4" />
-          </button>
-        </td>
-      </tr>
-      {comment.children.map((child) => (
-        <DesktopCommentRow
-          key={child.id}
-          comment={child}
-          level={level + 1}
-          selectedComments={selectedComments}
-          onSelectComment={onSelectComment}
-          onEditComment={onEditComment}
-          onReplyComment={onReplyComment}
-        />
-      ))}
-    </>
-  );
-}
-
-function DesktopView({
-  nestedComments,
-  selectedComments,
-  onSelectComment,
-  onEditComment,
-  onReplyComment,
-}) {
-  return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-sm text-right">
-        <thead className="bg-muted/50 dark:bg-muted/20">
-          <tr>
-            <th className="p-4 w-20"></th> {/* ستون انتخاب/تو رفتگی */}
-            <th className="p-4">نویسنده</th>
-            <th className="p-4">متن نظر</th>
-            <th className="p-4">در پاسخ به</th>
-            <th className="p-4">وضعیت</th>
-            <th className="p-4">تاریخ</th>
-            <th className="p-4 w-24">عملیات</th>
-          </tr>
-        </thead>
-        <tbody>
-          {nestedComments.map((comment) => (
-            <DesktopCommentRow
-              key={comment.id}
-              comment={comment}
-              selectedComments={selectedComments}
-              onSelectComment={onSelectComment}
-              onEditComment={onEditComment}
-              onReplyComment={onReplyComment}
-            />
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
-function MobileCommentCard({
-  comment,
-  isSelected,
-  onSelect,
-  onEdit,
-  isSelectionActive,
-  onActivateSelection,
-  onSingleAction,
-  onReply,
-}) {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const pressTimer = useRef();
-  const handlePressStart = () => {
-    if (!isSelectionActive)
-      pressTimer.current = setTimeout(
-        () => onActivateSelection(comment.id),
-        500
-      );
-  };
-  const handlePressEnd = () => clearTimeout(pressTimer.current);
-  const handleClick = () => {
-    if (isSelectionActive) onSelect(comment.id);
-  };
-  const handleMenuClick = (e) => {
-    e.stopPropagation();
-    setIsMenuOpen((prev) => !prev);
-  };
-  const handleActionClick = (e, action) => {
-    e.stopPropagation();
-    onSingleAction(action, [comment.id]);
-    setIsMenuOpen(false);
-  };
-  const handleEditClick = (e) => {
-    e.stopPropagation();
-    onEdit(comment);
-    setIsMenuOpen(false);
-  };
-  const handleReplyClick = (e) => {
-    e.stopPropagation();
-    onReply(comment);
-    setIsMenuOpen(false);
-  };
-
-  return (
-    <div
-      className={`relative p-4 border-b border-muted/30 transition-colors ${
-        isSelected ? "bg-primary/10" : "bg-transparent"
-      } ${comment.parent_id ? "pr-8 border-r-2 border-primary/50" : ""}`}
-      onTouchStart={handlePressStart}
-      onTouchEnd={handlePressEnd}
-      onContextMenu={(e) => e.preventDefault()}
-      onClick={handleClick}
-    >
-      {comment.parent_id && (
-        <ChevronLeft className="w-4 h-4 absolute right-2 top-4 text-primary" />
-      )}
-      <div className="flex items-start gap-3">
-        {isSelectionActive && (
-          <div className="mt-1">
-            <div
-              className={`h-5 w-5 rounded-full flex items-center justify-center border-2 ${
-                isSelected ? "bg-primary border-primary" : "border-muted"
-              }`}
-            >
-              {isSelected && <CheckCircle className="w-3 h-3 text-white" />}
-            </div>
-          </div>
-        )}
-        <div className="flex-1 min-w-0">
-          <div className="flex justify-between items-start">
-            <div className="min-w-0">
-              <p className="font-bold text-foreground truncate">
-                {comment.author_name}
-              </p>
-              {comment.author_email && (
-                <p className="text-xs text-foreground/70 truncate">
-                  {comment.author_email}
-                </p>
-              )}
-            </div>
-            {!isSelectionActive && (
-              <div className="relative z-10">
-                <button
-                  onClick={handleMenuClick}
-                  className="p-2 -mr-2 rounded-full hover:bg-muted"
-                >
-                  <MoreVertical className="w-5 h-5 text-muted-foreground" />
-                </button>
-                {isMenuOpen && (
-                  <div className="absolute left-0 top-full mt-2 w-48 bg-white dark:bg-[#2a2a2a] rounded-lg shadow-xl border border-muted/30 z-10">
-                    <button
-                      onClick={handleReplyClick}
-                      className="w-full text-right flex items-center gap-3 px-4 py-2 hover:bg-muted/50"
-                    >
-                      <ShieldCheck className="w-4 h-4 text-green-500" /> پاسخ
-                      دادن
-                    </button>
-                    <button
-                      onClick={handleEditClick}
-                      className="w-full text-right flex items-center gap-3 px-4 py-2 hover:bg-muted/50"
-                    >
-                      <Edit className="w-4 h-4" /> ویرایش
-                    </button>
-                    <hr className="dark:border-muted/30" />
-                    <button
-                      onClick={(e) => handleActionClick(e, "approved")}
-                      className="w-full text-right flex items-center gap-3 px-4 py-2 hover:bg-muted/50"
-                    >
-                      <ShieldCheck className="w-4 h-4 text-green-500" /> تایید
-                      کردن
-                    </button>
-                    <button
-                      onClick={(e) => handleActionClick(e, "spam")}
-                      className="w-full text-right flex items-center gap-3 px-4 py-2 hover:bg-muted/50"
-                    >
-                      <ShieldAlert className="w-4 h-4 text-red-500" /> اسپم
-                    </button>
-                    <hr className="dark:border-muted/30" />
-                    <button
-                      onClick={(e) => handleActionClick(e, "delete")}
-                      className="w-full text-right flex items-center gap-3 px-4 py-2 text-red-600 hover:bg-red-500/10"
-                    >
-                      <Trash2 className="w-4 h-4" /> حذف
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-          <p className="my-3 text-foreground/90 leading-relaxed line-clamp-4">
-            {comment.content}
-          </p>
-          <div className="flex items-center justify-between text-xs pt-1 border-t border-muted/30">
-            <Link
-              href={`/${comment.post_slug}`}
-              className="text-primary hover:underline truncate max-w-[50%]"
-              target="_blank"
-              onClick={(e) => e.stopPropagation()}
-            >
-              {comment.post_title}
-            </Link>
-            <StatusBadge status={comment.status} />
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function MobileView({ comments, onReply, ...props }) {
-  return (
-    <div>
-      {comments.map((comment) => (
-        <MobileCommentCard
-          key={comment.id}
-          comment={comment}
-          onReply={onReply}
-          {...props}
-        />
-      ))}
-    </div>
-  );
-}
-
-// =================================================================================
-// کامپوننت اصلی و نهایی صفحه
-// =================================================================================
-export default function CommentsAdminPage() {
-  const [comments, setComments] = useState([]);
-  const [nestedComments, setNestedComments] = useState([]);
-  const [totalComments, setTotalComments] = useState(0);
-  const [selectedComments, setSelectedComments] = useState([]);
-  const [lastSelectedId, setLastSelectedId] = useState(null);
-  const [editingComment, setEditingComment] = useState(null);
-  const [replyingComment, setReplyingComment] = useState(null);
-  const [isPending, startTransition] = useTransition();
-  const selectAllCheckboxRef = useRef(null);
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const currentStatusFilter = searchParams.get("status") || "all";
-  const currentPage = Number(searchParams.get("page")) || 1;
-
-  const isSelectionActive = selectedComments.length > 0;
-
-  const fetchComments = async () => {
-    const { comments: fc, totalComments: ft } = await getComments({
-      filterStatus: currentStatusFilter,
-      page: currentPage,
-    });
-    const structuredComments = nestComments(fc);
-    setComments(fc);
-    setNestedComments(structuredComments);
-    setTotalComments(ft);
-    setSelectedComments([]);
-    setLastSelectedId(null);
-    window.scrollTo(0, 0);
-  };
-
-  useEffect(() => {
-    startTransition(fetchComments);
-  }, [currentStatusFilter, currentPage]);
-
-  useEffect(() => {
-    if (selectAllCheckboxRef.current) {
-      selectAllCheckboxRef.current.indeterminate =
-        isSelectionActive && selectedComments.length < comments.length;
-    }
-  }, [selectedComments, comments, isSelectionActive]);
-
-  const handleSelectComment = (clickedId, event) => {
-    if (event?.nativeEvent.shiftKey && lastSelectedId) {
+    // اگر شیفت نگه داشته شده و قبلاً چیزی انتخاب شده
+    if (lastSelectedId && comments.some((c) => c.id === lastSelectedId)) {
       const lastIndex = comments.findIndex((c) => c.id === lastSelectedId);
-      const currentIndex = comments.findIndex((c) => c.id === clickedId);
+      const currentIndex = comments.findIndex((c) => c.id === id);
+
       if (lastIndex === -1 || currentIndex === -1) return;
-      const from = Math.min(lastIndex, currentIndex);
-      const to = Math.max(lastIndex, currentIndex);
-      const rangeIds = comments.slice(from, to + 1).map((c) => c.id);
-      setSelectedComments((prev) => [...new Set([...prev, ...rangeIds])]);
+
+      const start = Math.min(lastIndex, currentIndex);
+      const end = Math.max(lastIndex, currentIndex);
+
+      // گرفتن همه ID های بین بازه
+      const rangeIds = comments.slice(start, end + 1).map((c) => c.id);
+
+      // اضافه کردن به انتخاب‌های قبلی (یونیک)
+      setSelected((prev) => [...new Set([...prev, ...rangeIds])]);
     } else {
-      setSelectedComments((prev) =>
-        prev.includes(clickedId)
-          ? prev.filter((id) => id !== clickedId)
-          : [...prev, clickedId]
-      );
+      // حالت فال‌بک اگر lastSelectedId نبود
+      setSelected([id]);
+      setLastSelectedId(id);
     }
-    setLastSelectedId(clickedId);
   };
 
-  const handleSelectAll = (e) =>
-    setSelectedComments(e.target.checked ? comments.map((c) => c.id) : []);
-  const handleFilterChange = (e) =>
-    router.push(`/admin/comments?status=${e.target.value}`);
-
-  const handleBulkAction = (action, commentIds = selectedComments) => {
-    if (commentIds.length === 0) return;
+  const handleBulkAction = (action, ids = selected) => {
+    if (!ids.length) return;
+    if (
+      action === "delete" &&
+      !confirm(`آیا از حذف ${ids.length} نظر اطمینان دارید؟`)
+    )
+      return;
 
     startTransition(async () => {
-      let result;
-      if (action === "delete") {
-        if (!confirm(`آیا از حذف ${commentIds.length} کامنت مطمئن هستید؟`))
-          return;
-        result = await deleteComments(commentIds);
-        if (result.success) {
-          setComments((prev) => prev.filter((c) => !commentIds.includes(c.id)));
-          setNestedComments((prev) =>
-            nestComments(prev.filter((c) => !commentIds.includes(c.id)))
-          );
-          setTotalComments((prev) => prev - result.affectedRows);
-        }
-      } else {
-        result = await updateCommentsStatus(commentIds, action);
-        if (result.success) {
-          setComments((prev) =>
-            prev.map((c) =>
-              commentIds.includes(c.id) ? { ...c, status: action } : c
-            )
-          );
-          setNestedComments((prev) =>
-            nestComments(
-              prev.map((c) =>
-                commentIds.includes(c.id) ? { ...c, status: action } : c
-              )
-            )
-          );
-        }
-      }
+      const res =
+        action === "delete"
+          ? await deleteComments(ids)
+          : await updateCommentsStatus(ids, action);
 
-      if (result.success) {
-        setSelectedComments([]);
+      if (res.success) {
+        fetchData();
       } else {
-        alert(result.error || "خطایی در انجام عملیات رخ داد.");
+        alert(res.error);
       }
     });
   };
 
-  const handleSaveEdit = (updatedComment) => {
-    setComments((prev) =>
-      prev.map((c) => (c.id === updatedComment.id ? updatedComment : c))
-    );
-    setNestedComments((prev) =>
-      nestComments(
-        comments.map((c) => (c.id === updatedComment.id ? updatedComment : c))
-      )
-    );
-  };
-
   return (
-    <>
-      {replyingComment && (
+    <div className="p-4 md:p-10 min-h-screen bg-gray-50 text-zinc-800 font-sans">
+      {replyTarget && (
         <ReplyCommentModal
-          parentComment={replyingComment}
-          onClose={() => setReplyingComment(null)}
-          onReplySuccess={fetchComments}
+          parentComment={replyTarget}
+          onClose={() => setReplyTarget(null)}
+          onReplySuccess={fetchData}
         />
       )}
-      {editingComment && (
+      {editTarget && (
         <EditCommentModal
-          comment={editingComment}
-          onClose={() => setEditingComment(null)}
-          onSave={handleSaveEdit}
+          comment={editTarget}
+          onClose={() => setEditTarget(null)}
+          onSave={fetchData}
         />
       )}
-      <div className="p-0 sm:p-6 md:p-8 bg-background text-foreground min-h-screen">
-        <header className="mb-8 px-4 sm:px-0 pt-4 sm:pt-0">
-          <h1 className="text-3xl font-bold text-primary">مدیریت نظرات</h1>
-          <p className="text-muted-foreground mt-2">
-            مجموعاً{" "}
-            <span className="font-bold text-foreground">{totalComments}</span>{" "}
-            نظر یافت شد.
-          </p>
+
+      <div className="max-w-7xl mx-auto">
+        <header className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-extrabold text-zinc-900 tracking-tight flex items-center gap-3">
+              <LayoutList className="w-8 h-8 text-blue-600" />
+              مدیریت نظرات
+            </h1>
+            <p className="text-zinc-500 mt-2 text-sm font-medium">
+              مدیریت و پاسخ‌دهی به نظرات کاربران
+            </p>
+          </div>
+          <div className="bg-white px-4 py-2 rounded-xl border border-zinc-200 shadow-sm text-sm font-medium flex items-center gap-2">
+            <span className="text-zinc-500">تعداد کل:</span>
+            <span className="text-blue-600 font-bold text-lg">{total}</span>
+          </div>
         </header>
-        <div className="bg-white dark:bg-[#1a1a1a] sm:rounded-xl shadow-lg border-y sm:border border-muted/30 overflow-hidden">
-          <div className="p-4 border-b border-muted/30 flex items-center justify-between gap-4 h-auto md:h-[68px] flex-wrap">
-            {isSelectionActive ? (
-              <div className="w-full flex justify-between items-center">
-                <button
-                  onClick={() => setSelectedComments([])}
-                  className="flex items-center gap-2 text-sm font-semibold text-primary p-2 -ml-2 rounded-md hover:bg-muted/50"
-                >
-                  <X className="w-5 h-5" />
-                  <span>لغو</span>
-                </button>
-                <span className="font-bold text-primary">
-                  {selectedComments.length} مورد انتخاب شد
-                </span>
+
+        <div className="bg-white rounded-3xl shadow-xl shadow-zinc-200/50 border border-zinc-100 overflow-hidden">
+          {/* نوار ابزار */}
+          <div className="p-5 border-b border-zinc-100 flex flex-col sm:flex-row justify-between items-center gap-4 bg-white sticky top-0 z-20">
+            {selected.length > 0 ? (
+              <div className="w-full flex items-center justify-between bg-blue-50 text-blue-900 px-4 py-3 rounded-2xl border border-blue-100 animate-in slide-in-from-top-2">
+                <div className="flex items-center gap-4">
+                  <button
+                    onClick={() => setSelected([])}
+                    className="p-1 hover:bg-blue-100 rounded-full transition-colors"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                  <span className="font-bold text-sm">
+                    {selected.length} مورد انتخاب شده
+                  </span>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handleBulkAction("approved")}
+                    className="btn-icon text-emerald-600 hover:bg-white p-2 rounded-lg transition shadow-sm"
+                  >
+                    <CheckCircle className="w-5 h-5" />
+                  </button>
+                  <button
+                    onClick={() => handleBulkAction("pending")}
+                    className="btn-icon text-amber-600 hover:bg-white p-2 rounded-lg transition shadow-sm"
+                  >
+                    <Clock className="w-5 h-5" />
+                  </button>
+                  <button
+                    onClick={() => handleBulkAction("spam")}
+                    className="btn-icon text-rose-600 hover:bg-white p-2 rounded-lg transition shadow-sm"
+                  >
+                    <ShieldAlert className="w-5 h-5" />
+                  </button>
+                  <div className="w-px h-6 bg-blue-200 mx-2 self-center"></div>
+                  <button
+                    onClick={() => handleBulkAction("delete")}
+                    className="btn-icon text-red-600 hover:bg-white p-2 rounded-lg transition shadow-sm"
+                  >
+                    <Trash2 className="w-5 h-5" />
+                  </button>
+                </div>
               </div>
             ) : (
-              <div className="flex items-center gap-4">
-                <div className="hidden md:flex items-center gap-3">
-                  <input
-                    type="checkbox"
-                    ref={selectAllCheckboxRef}
-                    className="form-checkbox h-5 w-5"
-                    onChange={handleSelectAll}
-                    checked={
-                      comments.length > 0 &&
-                      selectedComments.length === comments.length
-                    }
-                  />
-                  <span>انتخاب همه</span>
+              <div className="w-full flex justify-between items-center">
+                <div className="text-sm font-bold text-zinc-500 mr-2">
+                  فیلتر نمایش:
                 </div>
-                <div className="relative">
+                <div className="relative group w-48 sm:w-56">
+                  {/* رفع مشکل افتادن آیکون روی متن با تنظیم پدینگ چپ و راست */}
                   <select
-                    value={currentStatusFilter}
-                    onChange={handleFilterChange}
-                    className="min-w-[160px] appearance-none cursor-pointer bg-transparent rounded-lg border border-muted/50 py-2 pl-10 pr-4 text-sm font-medium focus:ring-2 focus:ring-primary/50"
+                    value={statusFilter}
+                    onChange={(e) => router.push(`?status=${e.target.value}`)}
+                    className="appearance-none w-full bg-zinc-50 border border-zinc-200 hover:border-blue-400 text-sm font-medium rounded-xl py-2.5 pl-10 pr-4 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all cursor-pointer text-zinc-700"
                   >
-                    <option value="all">همه وضعیت‌ها</option>
-                    <option value="pending">در انتظار</option>
+                    <option value="all">همه نظرات</option>
+                    <option value="pending">در انتظار تایید</option>
                     <option value="approved">تایید شده</option>
                     <option value="spam">اسپم</option>
                   </select>
-                  <ChevronDown className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+                  <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-400 group-hover:text-blue-500 transition-colors">
+                    <Filter className="w-4 h-4" />
+                  </div>
                 </div>
               </div>
             )}
           </div>
-          {isSelectionActive && (
-            <div className="p-4 border-b border-muted/30 flex flex-wrap items-center justify-center gap-2 bg-primary/5">
-              <button
-                onClick={() => handleBulkAction("approved")}
-                disabled={isPending}
-                className="flex items-center gap-2 px-3 py-2 text-sm rounded-md hover:bg-black/5 dark:hover:bg-white/5 disabled:opacity-50"
+
+          {/* جدول دسکتاپ */}
+          <div className="hidden md:block overflow-x-auto min-h-[500px]">
+            <table className="w-full text-sm text-right">
+              <thead className="bg-zinc-50/80 text-zinc-500 font-semibold border-b border-zinc-100 backdrop-blur">
+                <tr>
+                  <th className="p-5 w-14 text-center">
+                    <input
+                      type="checkbox"
+                      className="w-5 h-5 rounded-md border-zinc-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                      onChange={(e) => {
+                        const allIds = comments.map((c) => c.id);
+                        setSelected(e.target.checked ? allIds : []);
+                        setLastSelectedId(null);
+                      }}
+                      checked={
+                        comments.length > 0 &&
+                        selected.length === comments.length
+                      }
+                    />
+                  </th>
+                  <th className="p-5">کاربر</th>
+                  <th className="p-5">دیدگاه</th>
+                  <th className="p-5">مطلب</th>
+                  <th className="p-5">وضعیت</th>
+                  <th className="p-5 w-32">عملیات</th>
+                </tr>
+              </thead>
+              <tbody
+                className={
+                  isPending
+                    ? "opacity-50 grayscale transition-all duration-300"
+                    : ""
+                }
               >
-                <CheckCircle className="w-4 h-4 text-green-600" /> تایید
-              </button>
-              <button
-                onClick={() => handleBulkAction("pending")}
-                disabled={isPending}
-                className="flex items-center gap-2 px-3 py-2 text-sm rounded-md hover:bg-black/5 dark:hover:bg-white/5 disabled:opacity-50"
-              >
-                <Clock className="w-4 h-4 text-yellow-600" /> انتظار
-              </button>
-              <button
-                onClick={() => handleBulkAction("spam")}
-                disabled={isPending}
-                className="flex items-center gap-2 px-3 py-2 text-sm rounded-md hover:bg-black/5 dark:hover:bg-white/5 disabled:opacity-50"
-              >
-                <ShieldAlert className="w-4 h-4 text-orange-600" /> اسپم
-              </button>
-              <button
-                onClick={() => handleBulkAction("delete")}
-                disabled={isPending}
-                className="flex items-center gap-2 px-3 py-2 text-sm text-red-600 rounded-md hover:bg-red-500/10 disabled:opacity-50"
-              >
-                <Trash2 className="w-4 h-4" /> حذف
-              </button>
+                {nestedData.length === 0 && !isPending ? (
+                  <tr>
+                    <td colSpan="6" className="py-24 text-center">
+                      <div className="flex flex-col items-center gap-4 text-zinc-400">
+                        <div className="w-20 h-20 bg-zinc-50 rounded-full flex items-center justify-center border border-zinc-100">
+                          <LayoutList className="w-10 h-10 opacity-50" />
+                        </div>
+                        <p className="font-medium">
+                          هیچ نظری با این مشخصات یافت نشد.
+                        </p>
+                      </div>
+                    </td>
+                  </tr>
+                ) : (
+                  nestedData.map((c) => (
+                    <DesktopCommentRow
+                      key={c.id}
+                      comment={c}
+                      selected={selected.includes(c.id)}
+                      onSelect={handleSelect} // استفاده از تابع جدید هندل سلکت
+                      onEdit={setEditTarget}
+                      onReply={setReplyTarget}
+                      onDelete={(id) => handleBulkAction("delete", [id])}
+                    />
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* لیست موبایل */}
+          <div className="md:hidden">
+            {comments.map((c) => (
+              <MobileCommentCard
+                key={c.id}
+                comment={c}
+                selected={selected.includes(c.id)}
+                onSelect={(id) => handleSelect(id)} // برای موبایل معمولاً شیفت نداریم ولی ساختار حفظ شود
+                onEdit={setEditTarget}
+                onReply={setReplyTarget}
+                onDelete={(id) => handleBulkAction("delete", [id])}
+                isSelectionActive={selected.length > 0}
+              />
+            ))}
+          </div>
+
+          {/* صفحه‌بندی */}
+          {total > 0 && (
+            <div className="flex items-center justify-between p-5 border-t border-zinc-100 bg-zinc-50/50">
+              <div className="text-xs font-medium text-zinc-500">
+                صفحه{" "}
+                <span className="text-zinc-900 font-bold text-sm mx-1">
+                  {page}
+                </span>
+              </div>
+              <div className="flex gap-2">
+                <Link
+                  href={`?page=${page - 1}${
+                    statusFilter !== "all" ? `&status=${statusFilter}` : ""
+                  }`}
+                  className={`flex items-center gap-1 px-4 py-2 rounded-xl text-xs font-bold border transition-all ${
+                    page <= 1
+                      ? "pointer-events-none opacity-50 bg-zinc-100 text-zinc-400 border-zinc-200"
+                      : "bg-white hover:bg-white hover:shadow-md hover:-translate-y-0.5 border-zinc-200 text-zinc-700"
+                  }`}
+                >
+                  <ChevronRight className="w-4 h-4" /> قبلی
+                </Link>
+                <Link
+                  href={`?page=${page + 1}${
+                    statusFilter !== "all" ? `&status=${statusFilter}` : ""
+                  }`}
+                  className={`flex items-center gap-1 px-4 py-2 rounded-xl text-xs font-bold border transition-all ${
+                    comments.length < 50
+                      ? "pointer-events-none opacity-50 bg-zinc-100 text-zinc-400 border-zinc-200"
+                      : "bg-white hover:bg-white hover:shadow-md hover:-translate-y-0.5 border-zinc-200 text-zinc-700"
+                  }`}
+                >
+                  بعدی <ChevronLeft className="w-4 h-4" />
+                </Link>
+              </div>
             </div>
           )}
-          <div
-            className={`min-h-[400px] transition-opacity duration-300 ${
-              isPending ? "opacity-50" : "opacity-100"
-            }`}
-          >
-            <div className="hidden md:block">
-              <DesktopView
-                nestedComments={nestedComments}
-                selectedComments={selectedComments}
-                onSelectComment={handleSelectComment}
-                onEditComment={setEditingComment}
-                onReplyComment={setReplyingComment}
-              />
-            </div>
-            <div className="md:hidden">
-              <MobileView
-                comments={comments}
-                selectedComments={selectedComments}
-                onSelect={handleSelectComment}
-                onEdit={setEditingComment}
-                onReply={setReplyingComment}
-                onSingleAction={handleBulkAction}
-                isSelectionActive={isSelectionActive}
-                onActivateSelection={(id) => setSelectedComments([id])}
-              />
-            </div>
-            {comments.length === 0 && !isPending && (
-              <div className="text-center p-10 text-muted-foreground">
-                هیچ نظری مطابق با فیلتر شما یافت نشد.
-              </div>
-            )}
-          </div>
-          <Pagination
-            currentPage={currentPage}
-            totalItems={totalComments}
-            itemsPerPage={COMMENTS_PER_PAGE}
-          />
         </div>
       </div>
-    </>
+    </div>
   );
 }

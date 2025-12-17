@@ -61,13 +61,7 @@ export async function submitComment(prevState, formData) {
   try {
     await db.execute(
       "INSERT INTO comments (post_id, parent_id, author_name, author_email, content, status) VALUES (?, ?, ?, ?, ?, 'pending')",
-      [
-        postId,
-        parentId,
-        authorName,
-        authorEmail || "no-email@example.com",
-        content,
-      ] // email را اختیاری در نظر می‌گیریم اگر کاربر نخواهد پر کند
+      [postId, parentId, authorName, authorEmail, content] // email را اختیاری در نظر می‌گیریم اگر کاربر نخواهد پر کند
     );
 
     // Revalidate کردن مسیر پست برای اطمینان از تازگی داده‌ها (اختیاری است، Client Component کامنت‌ها را مجدداً واکشی می‌کند)

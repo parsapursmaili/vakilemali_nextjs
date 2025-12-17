@@ -150,8 +150,11 @@ export async function updatePost(postId, formData) {
     const excerpt = formData.get("excerpt");
     const status = formData.get("status");
     const thumbnail = formData.get("thumbnail");
-    const video_link = formData.get("video_link");
-    const redirect_url = formData.get("redirect_url");
+
+    // تغییر: اگر مقدار خالی بود، null قرار بده
+    const video_link = formData.get("video_link") || null;
+    const redirect_url = formData.get("redirect_url") || null;
+
     const approved = formData.get("approved") === "1" ? 1 : 0;
     const categoryIds = formData.getAll("categories").map(Number);
 
@@ -216,8 +219,11 @@ export async function createPost(formData) {
     const excerpt = formData.get("excerpt");
     const status = formData.get("status");
     const thumbnail = formData.get("thumbnail");
-    const video_link = formData.get("video_link");
-    const redirect_url = formData.get("redirect_url");
+
+    // تغییر: اگر مقدار خالی بود، null قرار بده
+    const video_link = formData.get("video_link") || null;
+    const redirect_url = formData.get("redirect_url") || null;
+
     const approved = formData.get("approved") === "1" ? 1 : 0;
     const categoryIds = formData.getAll("categories").map(Number);
 
