@@ -9,7 +9,10 @@
 !.yarn/plugins
 !.yarn/releases
 !.yarn/versions
-
+/cache
+/public
+/deploy_vakilemali.sh
+/Dockerfile
 # testing
 /coverage
 /public
