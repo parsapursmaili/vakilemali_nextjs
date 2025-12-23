@@ -44,7 +44,7 @@ export async function getPaginatedPosts({
       countQuery += joinClause;
     }
 
-    let whereClause = ` WHERE p.status = 'published' and p.type = 'post'`;
+    let whereClause = ` WHERE p.status = 'published' and redirect_url is NULL and p.type = 'post'`;
     if (categoryId) {
       whereClause += ` AND t.id = ?`;
       params.push(categoryId);
