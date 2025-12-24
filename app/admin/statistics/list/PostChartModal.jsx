@@ -1,115 +1,114 @@
-// PostChartModal.jsx
 "use client";
-
 import { useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
 import {
-  LineChart,
-  Line,
+  AreaChart,
+  Area,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend,
   ResponsiveContainer,
 } from "recharts";
-import { getPostChartData } from "./statistics";
+import { getPostChartData } from "./statisticsActions";
+import { X, TrendingUp } from "lucide-react";
 
-const ChartLoader = () => (
-  <div className="flex items-center justify-center h-full">
-    <div className="w-12 h-12 border-4 border-t-transparent border-[var(--primary)] rounded-full animate-spin"></div>
-  </div>
-);
-
-export default function PostChartModal({ post, isOpen, onClose }) {
-  const [chartData, setChartData] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const searchParams = useSearchParams();
+export default function PostChartModal({ post, isOpen, onClose, period }) {
+  const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (isOpen && post) {
-      const fetchChartData = async () => {
-        setIsLoading(true);
-        const period = searchParams.get("period") || "week";
-        const startDate = searchParams.get("startDate");
-        const endDate = searchParams.get("endDate");
-        const data = await getPostChartData({
-          postId: post.id,
-          period,
-          startDate,
-          endDate,
-        });
-        setChartData(data);
-        setIsLoading(false);
-      };
-      fetchChartData();
+      setLoading(true);
+      getPostChartData({ postId: post.id, period }).then((res) => {
+        setData(res);
+        setLoading(false);
+      });
     }
-  }, [isOpen, post, searchParams]);
+  }, [isOpen, post, period]);
 
   if (!isOpen) return null;
 
   return (
     <div
-      className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50"
+      className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-2 md:p-4"
       onClick={onClose}
     >
       <div
-        // کلاس‌های ریسپانسیو برای عرض: w-11/12 (موبایل) تا max-w-4xl (دسکتاپ)
-        className="bg-[var(--background)] rounded-xl shadow-2xl p-6 w-11/12 md:w-3/4 lg:w-2/3 max-w-4xl transform transition-all"
+        className="bg-white rounded-[1.5rem] md:rounded-[2.5rem] p-4 md:p-8 w-full max-w-4xl shadow-2xl animate-in zoom-in duration-300"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex justify-between items-center border-b border-[var(--muted)] pb-3 mb-4">
+        <div className="flex justify-between items-start mb-6">
           <div>
-            <h3 className="text-xl font-bold text-[var(--foreground)]">
-              آمار بازدید روزانه
+            <h3 className="text-xl md:text-2xl font-black text-[var(--primary)] flex items-center gap-2">
+              <TrendingUp className="text-[var(--accent)]" /> تحلیل روند بازدید
             </h3>
-            <p className="text-sm text-[var(--foreground)] opacity-80">
+            <p className="text-gray-500 font-bold mt-1 text-sm md:text-base">
               {post.title}
             </p>
           </div>
           <button
             onClick={onClose}
-            className="text-2xl hover:text-[var(--destructive)]"
+            className="p-2 hover:bg-gray-100 rounded-full transition-colors"
           >
-            &times;
+            <X size={24} />
           </button>
         </div>
-        <div className="h-80">
-          {" "}
-          {/* ارتفاع ثابت برای نمودار که در موبایل قابل قبول است */}
-          {isLoading ? (
-            <ChartLoader />
-          ) : chartData.length > 0 ? (
+
+        <div className="h-64 md:h-80 w-full">
+          {loading ? (
+            <div className="h-full flex items-center justify-center font-bold text-gray-400">
+              در حال دریافت داده‌ها...
+            </div>
+          ) : (
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart
-                data={chartData}
-                margin={{ top: 5, right: 20, left: -10, bottom: 5 }}
-              >
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--muted)" />
-                <XAxis dataKey="date" tick={{ fill: "var(--foreground)" }} />
-                <YAxis tick={{ fill: "var(--foreground)" }} />
+              <AreaChart data={data}>
+                <defs>
+                  <linearGradient id="colorPost" x1="0" y1="0" x2="0" y2="1">
+                    <stop
+                      offset="5%"
+                      stopColor="var(--accent)"
+                      stopOpacity={0.3}
+                    />
+                    <stop
+                      offset="95%"
+                      stopColor="var(--accent)"
+                      stopOpacity={0}
+                    />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  vertical={false}
+                  stroke="#f0f0f0"
+                />
+                <XAxis
+                  dataKey="date"
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fontSize: 10, fill: "#9ca3af", fontWeight: 600 }}
+                  interval="preserveStartEnd"
+                />
+                <YAxis hide />
                 <Tooltip
                   contentStyle={{
-                    backgroundColor: "var(--background)",
-                    border: "1px solid var(--muted)",
+                    borderRadius: "12px",
+                    border: "none",
+                    boxShadow: "0 10px 15px rgba(0,0,0,0.1)",
+                    direction: "rtl",
                   }}
+                  labelStyle={{ fontWeight: "bold" }}
                 />
-                <Legend />
-                <Line
+                <Area
                   type="monotone"
                   dataKey="views"
                   name="بازدید"
-                  stroke="var(--primary-light)"
-                  strokeWidth={2}
-                  dot={{ r: 4 }}
-                  activeDot={{ r: 8 }}
+                  stroke="var(--accent)"
+                  strokeWidth={3}
+                  fillOpacity={1}
+                  fill="url(#colorPost)"
                 />
-              </LineChart>
+              </AreaChart>
             </ResponsiveContainer>
-          ) : (
-            <p className="text-center pt-16">
-              داده‌ای برای نمایش نمودار در این بازه وجود ندارد.
-            </p>
           )}
         </div>
       </div>

@@ -1,255 +1,228 @@
-// StatisticsClient.jsx
 "use client";
 
-import { useState, useTransition, useRef, useEffect } from "react";
+import { useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import moment from "jalali-moment";
-import { Eye, Trophy, PieChart } from "lucide-react";
+import {
+  Eye,
+  Calendar,
+  BarChart3,
+  ArrowUpRight,
+  TrendingUp,
+} from "lucide-react";
 import PostChartModal from "./PostChartModal";
+import {
+  AreaChart,
+  Area,
+  XAxis,
+  ResponsiveContainer,
+  Tooltip,
+  CartesianGrid,
+} from "recharts";
 
 export default function StatisticsClient({ initialData }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
   const [modalPost, setModalPost] = useState(null);
+  const [showMainChart, setShowMainChart] = useState(false);
 
-  // تغییر: محاسبه تاریخ امروز شمسی برای استفاده در stateهای پیش‌فرض
-  const todayJalali = moment().locale("fa").format("YYYY/MM/DD");
-
-  const [isCustomRangeOpen, setIsCustomRangeOpen] = useState(false);
-  // تغییر: مقداردهی اولیه stateهای بازه سفارشی با تاریخ امروز شمسی
-  const [customStartDate, setCustomStartDate] = useState(todayJalali);
-  const [customEndDate, setCustomEndDate] = useState(todayJalali);
-
-  const customRangeRef = useRef(null);
   const activePeriod = searchParams.get("period") || "today";
 
-  // بستن پاپ‌آپ با کلیک بیرون
-  useEffect(() => {
-    function handleClickOutside(event) {
-      if (
-        customRangeRef.current &&
-        !customRangeRef.current.contains(event.target)
-      ) {
-        setIsCustomRangeOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  const handlePeriodChange = (period) => {
-    if (period === "custom") {
-      setIsCustomRangeOpen(true);
-      return;
-    }
-    setIsCustomRangeOpen(false);
-    // بازنشانی تاریخ‌های سفارشی به امروز هنگام تغییر بازه به غیر سفارشی
-    setCustomStartDate(todayJalali);
-    setCustomEndDate(todayJalali);
-
-    const params = new URLSearchParams(window.location.search);
-    params.set("period", period);
-    params.delete("startDate");
-    params.delete("endDate");
+  const updateParams = (newParams) => {
+    const params = new URLSearchParams(searchParams);
+    Object.entries(newParams).forEach(([k, v]) =>
+      v ? params.set(k, v) : params.delete(k)
+    );
     startTransition(() => router.push(`?${params.toString()}`));
   };
 
-  const handleDateRangeApply = () => {
-    if (customStartDate && customEndDate) {
-      setIsCustomRangeOpen(false);
-      const params = new URLSearchParams();
-      params.set("period", "custom");
-      params.set("startDate", customStartDate);
-      params.set("endDate", customEndDate);
-      startTransition(() => router.push(`?${params.toString()}`));
-    }
-  };
-
-  const periods = [
-    { key: "today", label: "امروز" },
-    // تغییر: افزودن بازه دیروز
-    { key: "yesterday", label: "دیروز" },
-    { key: "week", label: "هفته اخیر" },
-    { key: "month", label: "ماه اخیر" },
-    { key: "year", label: "سال اخیر" },
-    { key: "all", label: "کل دوران" },
-  ];
-
   return (
     <div
-      className={`p-4 md:p-6 overflow-x-hidden transition-opacity duration-300 ${
-        isPending ? "opacity-60" : "opacity-100"
+      className={`space-y-6 md:space-y-8 animate-in fade-in duration-500 ${
+        isPending ? "opacity-50" : ""
       }`}
     >
-      <header className="mb-6">
-        <h1 className="text-3xl font-bold text-[var(--foreground)]">
-          آمار بازدید‌ها
-        </h1>
-        <p className="text-sm text-[var(--foreground)] opacity-70 mt-1">
-          شمارش از تاریخ: {initialData.earliestDateJalali}
-        </p>
-      </header>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-        <div className="bg-[var(--muted)] p-5 rounded-lg flex items-center gap-4">
-          <Eye className="h-6 w-6" />
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
+        <div className="lg:col-span-2 bg-white p-6 md:p-8 rounded-[1.5rem] md:rounded-[2rem] border border-[var(--muted)] shadow-sm flex flex-col justify-between min-h-[280px]">
           <div>
-            <p className="text-sm text-[var(--foreground)] opacity-80">
-              کل بازدید ({initialData.range})
-            </p>
-            <p className="text-2xl font-bold text-[var(--primary)]">
-              {initialData.totalViews.toLocaleString("fa-IR")}
-            </p>
-          </div>
-        </div>
-        <div className="bg-[var(--muted)] p-5 rounded-lg flex items-center gap-4">
-          <Trophy className="h-6 w-6" />
-          <div>
-            <p className="text-sm text-[var(--foreground)] opacity-80">
-              پربازدیدترین پست
-            </p>
-            {/* تغییر: حذف truncate و title برای نمایش کامل متن در خطوط بیشتر */}
-            <p className="text-base font-semibold text-[var(--primary)] whitespace-normal">
-              {initialData.topPost
-                ? `${
-                    initialData.topPost.title
-                  } (${initialData.topPost.views.toLocaleString(
-                    "fa-IR"
-                  )} بازدید)`
-                : "—"}
+            <h1 className="text-2xl md:text-4xl font-black text-[var(--primary)] mb-2">
+              گزارش بازدیدها
+            </h1>
+            <p className="text-gray-500 font-bold flex items-center gap-2 text-sm md:text-base">
+              <Calendar size={18} className="text-[var(--accent)]" />{" "}
+              {initialData.rangeLabel}
             </p>
           </div>
-        </div>
-      </div>
-
-      <div className="bg-[var(--muted)] p-3 rounded-lg flex flex-wrap items-center justify-between gap-4 mb-6">
-        <nav className="flex items-center gap-2 flex-wrap">
-          {periods.map(({ key, label }) => (
-            <button
-              key={key}
-              onClick={() => handlePeriodChange(key)}
-              className={`px-3 py-1.5 text-sm font-semibold rounded-md transition-colors ${
-                activePeriod === key
-                  ? "bg-[var(--primary)] text-white"
-                  : "hover:bg-opacity-80"
-              }`}
-            >
-              {label}
-            </button>
-          ))}
-          <div className="relative" ref={customRangeRef}>
-            <button
-              onClick={() => handlePeriodChange("custom")}
-              className={`px-3 py-1.5 text-sm font-semibold rounded-md transition-colors ${
-                activePeriod === "custom"
-                  ? "bg-[var(--primary)] text-white"
-                  : "hover:bg-opacity-80"
-              }`}
-            >
-              انتخاب بازه
-            </button>
-            {isCustomRangeOpen && (
-              <div className="absolute top-full right-0 mt-2 z-10 bg-[var(--background)] border border-[var(--muted)] rounded-lg shadow-lg p-4 w-72 space-y-3">
-                <p className="text-sm text-center">
-                  تاریخ امروز:{" "}
-                  <span className="font-semibold">{todayJalali}</span>
-                </p>
-                <input
-                  type="text"
-                  placeholder="شروع: YYYY/MM/DD"
-                  value={customStartDate}
-                  onChange={(e) => setCustomStartDate(e.target.value)}
-                  className="w-full px-2 py-1.5 border border-gray-300 rounded-md text-sm"
-                />
-                <input
-                  type="text"
-                  placeholder="پایان: YYYY/MM/DD"
-                  value={customEndDate}
-                  onChange={(e) => setCustomEndDate(e.target.value)}
-                  className="w-full px-2 py-1.5 border border-gray-300 rounded-md text-sm"
-                />
-                <button
-                  onClick={handleDateRangeApply}
-                  className="button-primary w-full !py-2 text-sm"
-                >
-                  اعمال
-                </button>
-              </div>
-            )}
-          </div>
-        </nav>
-      </div>
-
-      <div className="overflow-x-auto bg-[var(--background)] rounded-lg border border-[var(--muted)]">
-        <table className="w-full text-right">
-          <thead className="bg-[var(--muted)]">
-            <tr>
-              <th className="p-4 font-semibold text-sm w-12">#</th>
-              <th className="p-4 font-semibold text-sm text-right">
-                عنوان پست
-              </th>
-              <th className="p-4 font-semibold text-sm w-32 text-center">
-                بازدید در بازه
-              </th>
-              <th className="p-4 font-semibold text-sm w-40 text-center">
-                عملیات
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {initialData.posts.map((post, index) => (
-              <tr
-                key={post.id}
-                className="border-t border-[var(--muted)] hover:bg-[var(--muted)] transition-colors"
+          <div className="flex flex-wrap gap-2 mt-6 md:mt-8">
+            {[
+              { id: "today", label: "امروز" },
+              { id: "yesterday", label: "دیروز" },
+              { id: "week", label: "هفته" },
+              { id: "month", label: "ماه" },
+              { id: "year", label: "سال" },
+            ].map((p) => (
+              <button
+                key={p.id}
+                onClick={() => updateParams({ period: p.id })}
+                className={`px-4 md:px-6 py-2 rounded-xl text-xs md:text-sm font-black transition-all ${
+                  activePeriod === p.id
+                    ? "bg-[var(--primary)] text-white shadow-md scale-105"
+                    : "bg-gray-50 text-gray-400 hover:bg-gray-100"
+                }`}
               >
-                <td className="p-4 font-bold text-[var(--primary)]">
-                  {index + 1}
-                </td>
-                <td className="p-4 font-semibold">
-                  <a
-                    href={`/${post.slug}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="hover:underline"
-                  >
-                    {post.title}
-                  </a>
-                </td>
-                <td className="p-4 text-center font-mono font-bold text-lg text-[var(--accent)]">
-                  {post.period_views.toLocaleString("fa-IR")}
-                </td>
-                <td className="p-4 text-center">
-                  <button
-                    onClick={() => setModalPost(post)}
-                    className="button-secondary !py-1.5 !px-3 text-sm flex items-center justify-center mx-auto"
-                    disabled={activePeriod === "all"}
-                    title={
-                      activePeriod === "all"
-                        ? "نمودار برای کل دوران در دسترس نیست"
-                        : "نمایش نمودار بازدید"
-                    }
-                  >
-                    <PieChart className="h-5 w-5 ml-1" /> نمودار{" "}
-                  </button>
-                </td>
-              </tr>
+                {p.label}
+              </button>
             ))}
-            {initialData.posts.length === 0 && (
-              <tr>
-                <td colSpan="4" className="text-center p-8">
-                  هیچ پستی در این بازه زمانی بازدید نداشته است.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+            <button
+              onClick={() => setShowMainChart(!showMainChart)}
+              className="px-4 md:px-6 py-2 rounded-xl text-xs md:text-sm font-black bg-[var(--accent)] text-white flex items-center gap-2 shadow-md hover:opacity-90"
+            >
+              <BarChart3 size={16} />{" "}
+              {showMainChart ? "نمایش لیست" : "نمودار کلی"}
+            </button>
+          </div>
+        </div>
+
+        <div className="bg-[var(--primary)] p-6 md:p-8 rounded-[1.5rem] md:rounded-[2rem] shadow-xl flex flex-col justify-center items-center relative overflow-hidden min-h-[280px]">
+          <Eye className="absolute -bottom-6 -left-6 w-32 md:w-48 h-32 md:h-48 opacity-10 text-white" />
+          <p className="text-xs md:text-sm font-bold text-blue-200 mb-2 uppercase tracking-widest relative z-10">
+            مجموع بازدید بازه
+          </p>
+          <h2 className="!text-5xl md:text-9xl font-black italic relative z-10 leading-none !text-blue-100">
+            {(Number(initialData.totalViews) || 0).toLocaleString("fa-IR")}
+          </h2>
+        </div>
       </div>
+
+      {showMainChart ? (
+        <div className="bg-white p-4 md:p-8 rounded-[1.5rem] md:rounded-[2.5rem] border border-[var(--muted)] h-[400px] md:h-[500px] shadow-sm animate-in slide-in-from-bottom-4">
+          <div className="flex items-center justify-between mb-6 md:mb-8">
+            <h3 className="text-lg md:text-xl font-black flex items-center gap-2 text-[var(--primary)]">
+              <TrendingUp size={24} className="text-[var(--accent)]" />
+              روند ترافیک سایت ({activePeriod === "year"
+                ? "یک سال"
+                : "۳۰ روز"}{" "}
+              اخیر)
+            </h3>
+          </div>
+          <ResponsiveContainer width="100%" height="85%">
+            <AreaChart data={initialData.overallTrend}>
+              <CartesianGrid
+                strokeDasharray="3 3"
+                vertical={false}
+                stroke="#f0f0f0"
+              />
+              <XAxis
+                dataKey="date"
+                tick={{ fontSize: 10, fontWeight: 700 }}
+                axisLine={false}
+                tickLine={false}
+                interval="preserveStartEnd"
+              />
+              <Tooltip
+                contentStyle={{
+                  borderRadius: "12px",
+                  direction: "rtl",
+                  border: "none",
+                  boxShadow: "0 10px 20px rgba(0,0,0,0.1)",
+                }}
+                formatter={(val) => [
+                  val.toLocaleString("fa-IR") + " بازدید",
+                  "",
+                ]}
+              />
+              <Area
+                type="monotone"
+                dataKey="views"
+                stroke="var(--primary)"
+                strokeWidth={4}
+                fill="var(--primary)"
+                fillOpacity={0.05}
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+      ) : (
+        <div className="bg-white rounded-[1.5rem] md:rounded-[2rem] border border-[var(--muted)] overflow-hidden shadow-sm">
+          <div className="overflow-x-auto">
+            <table className="w-full text-right border-collapse min-w-[600px]">
+              <thead>
+                <tr className="bg-gray-50/50">
+                  <th className="p-4 md:p-6 text-xs font-bold text-gray-400 uppercase w-16">
+                    #
+                  </th>
+                  <th className="p-4 md:p-6 text-xs font-bold text-gray-400 uppercase text-right">
+                    عنوان محتوا
+                  </th>
+                  <th className="p-4 md:p-6 text-xs font-bold text-gray-400 uppercase text-center w-32">
+                    بازدید
+                  </th>
+                  <th className="p-4 md:p-6 text-xs font-bold text-gray-400 uppercase text-center w-40">
+                    عملیات
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {initialData.posts &&
+                  initialData.posts.map((post, index) => (
+                    <tr
+                      key={post.id}
+                      className="group hover:bg-gray-50 transition-all"
+                    >
+                      <td className="p-4 md:p-6 text-sm text-gray-500">
+                        {index + 1}
+                      </td>
+                      <td className="p-4 md:p-6">
+                        <a
+                          href={`/${post.slug}`}
+                          target="_blank"
+                          className="font-semibold text-sm md:text-base text-gray-900 hover:text-[var(--primary-light)] transition-colors flex items-center gap-2"
+                        >
+                          {post.title}{" "}
+                          <ArrowUpRight
+                            size={14}
+                            className="hidden md:block opacity-0 group-hover:opacity-100"
+                          />
+                        </a>
+                      </td>
+                      <td className="p-4 md:p-6 text-center font-mono font-bold text-base md:text-lg text-gray-700">
+                        {Number(post.period_views).toLocaleString()}
+                      </td>
+                      <td className="p-4 md:p-6 text-center">
+                        <button
+                          onClick={() => setModalPost(post)}
+                          className="px-4 py-2 rounded-xl bg-white border border-gray-200 text-[11px] font-bold hover:border-[var(--primary)] hover:shadow-md transition-all flex items-center gap-2 mx-auto text-gray-600"
+                        >
+                          <BarChart3
+                            size={16}
+                            className="text-[var(--accent)]"
+                          />{" "}
+                          <span>نمودار اختصاصی</span>
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                {(!initialData.posts || initialData.posts.length === 0) && (
+                  <tr>
+                    <td
+                      colSpan="4"
+                      className="p-16 text-center text-gray-400 font-medium"
+                    >
+                      داده‌ای برای نمایش یافت نشد.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       <PostChartModal
         post={modalPost}
         isOpen={!!modalPost}
         onClose={() => setModalPost(null)}
+        period={activePeriod}
       />
     </div>
   );
