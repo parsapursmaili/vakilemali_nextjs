@@ -140,7 +140,6 @@ export default async function SinglePostPage({ params }) {
         slug={slug}
         cleanImageUrlPath={cleanImageUrlPath}
       />
-      {console.log("salam")}
       <main className="w-full !p-0">
         <article className="w-full sm:max-w-4xl sm:mx-auto bg-white dark:bg-[#1a1a1a] sm:shadow-md sm:rounded-2xl sm:border sm:border-muted/20 px-4 py-8 sm:px-10 sm:py-12">
           {post.thumbnail && (
@@ -280,7 +279,6 @@ export default async function SinglePostPage({ params }) {
         telegramId={CTA_TELEGRAM_ID}
         categorySlug={primaryCategory?.slug}
       />
-      {console.log("CAT:", categories)}
     </>
   );
 }

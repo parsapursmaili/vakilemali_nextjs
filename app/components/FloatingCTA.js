@@ -22,7 +22,6 @@ export default function FloatingCTA({ phoneNumber, categorySlug }) {
   const [isClosed, setIsClosed] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
   const pathname = usePathname();
-  console.log("cat:", categorySlug);
   const SCROLL_TRIGGER = 150;
   const HIDDEN_ROUTES = ["/contact", "/login", "/admin"];
 
