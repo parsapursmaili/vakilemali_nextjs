@@ -2,10 +2,9 @@
 
 import { db } from "@/lib/db/mysql";
 import { isAuthenticated } from "@/actions/auth";
-import { cookies } from "next/headers";
 import { permanentRedirect } from "next/navigation";
 import { unstable_cache } from "next/cache";
-
+import { cookies, headers } from "next/headers";
 export async function getPostData(slug) {
   const decodedSlug = decodeURIComponent(slug);
 
@@ -67,24 +66,40 @@ export async function getPostData(slug) {
 
 export async function incrementPostViews(postId) {
   if (!postId) return false;
+
+  // ۱. بررسی لاگین بودن (طبق منطق خودتان)
   if (await isAuthenticated()) return false;
 
-  const cookieStore = cookies();
-  const viewedPostsCookie = cookieStore.get("viewed_posts");
-  const viewedPosts = viewedPostsCookie
-    ? viewedPostsCookie.value.split(",")
-    : [];
+  const headersList = headers();
+  const userAgent = headersList.get("user-agent") || "";
 
-  if (viewedPosts.includes(String(postId))) {
+  // ۲. شناسایی پیشرفته ربات‌ها (Bot Detection)
+  const botPattern =
+    /bot|crawler|spider|crawling|slurp|bing|google|baidu|yandex|facebookexternalhit|twitterbot|rogerbot|linkedinbot|embedly|quora\slink\spreview|showyoubot|outbrain|pinterest\/0\.|zeitgeist|vkShare|W3C_Validator|whatsapp/i;
+
+  if (botPattern.test(userAgent)) {
+    // اگر ربات بود، هیچ بازدیدی ثبت نکن
+    return false;
+  }
+
+  // ۳. بررسی کوکی بازدید کل سایت (۱۲ ساعته)
+  const cookieStore = cookies();
+  const hasVisitedRecently = cookieStore.get("site_visited");
+
+  if (hasVisitedRecently) {
+    // اگر کاربر در ۱۲ ساعت گذشته از هر صفحه‌ای بازدید کرده باشد، دیگر ثبت نکن
     return false;
   }
 
   try {
+    // ۴. بروزرسانی دیتابیس
+    // آپدیت تعداد کل بازدید پست
     await db.execute(
       "UPDATE posts SET view_count = view_count + 1 WHERE id = ?",
       [postId]
     );
 
+    // ثبت در آمار روزانه
     const today = new Date().toISOString().slice(0, 10);
     await db.execute(
       `INSERT INTO post_view (post_id, view_date, view_count) VALUES (?, ?, 1)
@@ -92,10 +107,9 @@ export async function incrementPostViews(postId) {
       [postId, today]
     );
 
-    const newViewedPosts = [...viewedPosts, postId];
-    cookieStore.set("viewed_posts", newViewedPosts.join(","), {
+    cookieStore.set("site_visited", "true", {
       path: "/",
-      maxAge: 60 * 60 * 24 * 365,
+      maxAge: 60 * 60 * 12, // ۱۲ ساعت به ثانیه
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
