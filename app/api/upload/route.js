@@ -1,69 +1,110 @@
 import { NextResponse } from "next/server";
 import path from "path";
 import { writeFile, mkdir } from "fs/promises";
+import { isAuthenticated } from "@/actions/auth"; // ایمپورت سیستم احراز هویت
 
-// تابع برای پاک‌سازی نام فایل (بدون تغییر)
+// تنظیمات امنیتی
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 مگابایت
+const ALLOWED_MIME_TYPES = {
+  "image/jpeg": ".jpg",
+  "image/png": ".png",
+  "image/gif": ".gif",
+  "image/webp": ".webp",
+  "image/svg+xml": ".svg",
+};
+
 const sanitizeFilename = (filename) => {
-  if (!filename) return "";
-  const name = path.parse(filename).name;
-  const ext = path.parse(filename).ext;
-  const decodedName = decodeURIComponent(name);
+  const { name, ext } = path.parse(filename || "");
+  const cleanName = decodeURIComponent(name)
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, "-") // تبدیل فاصله به خط تیره
+    .replace(/[^\w\u0600-\u06FF-]+/g, "") // فقط حروف الفبا (فارسی/انگلیسی)، اعداد و خط تیره
+    .replace(/-+/g, "-"); // حذف خط تیره‌های تکراری
 
-  return (
-    decodedName
-      .toLowerCase()
-      .trim()
-      .replace(/\s+/g, "-")
-      .replace(/[^\w\u0600-\u06FF-]+/g, "")
-      .replace(/--+/g, "-") + ext
-  );
+  return { cleanName, ext: ext.toLowerCase() };
 };
 
 export async function POST(req) {
   try {
+    // 1. لایه امنیتی اول: بررسی احراز هویت
+    const isAuth = await isAuthenticated();
+    if (!isAuth) {
+      return NextResponse.json(
+        { success: false, error: "عدم دسترسی." },
+        { status: 401 }
+      );
+    }
+
     const formData = await req.formData();
     const file = formData.get("file");
 
-    if (!file) {
+    // 2. اعتبارسنجی اولیه فایل
+    if (!file || typeof file === "string") {
       return NextResponse.json(
-        { success: false, error: "فایلی انتخاب نشده است." },
+        { success: false, error: "فایل نامعتبر است." },
         { status: 400 }
       );
     }
 
-    // --- منطق جدید برای مدیریت تاریخ ---
-    const now = new Date();
-    const year = now.getFullYear().toString();
-    const month = (now.getMonth() + 1).toString().padStart(2, "0"); // ماه از 0 شروع می‌شود، پس +1 می‌کنیم
+    // 3. بررسی حجم فایل (جلوگیری از پر شدن حافظه/دیسک)
+    if (file.size > MAX_FILE_SIZE) {
+      return NextResponse.json(
+        { success: false, error: "حجم فایل بیش از حد مجاز است." },
+        { status: 400 }
+      );
+    }
 
-    // مسیر دایرکتوری بر اساس تاریخ
-    const relativeDir = path.join("uploads", year, month);
+    // 4. بررسی نوع فایل (امنیت در برابر فایل‌های مخرب)
+    const mimeType = file.type;
+    const validExtension = ALLOWED_MIME_TYPES[mimeType];
+    const { cleanName, ext: fileExt } = sanitizeFilename(file.name);
+
+    // اگر MIME تایپ مجاز نبود یا اکستنشن فایل با محتوا همخوانی نداشت
+    if (
+      !validExtension ||
+      (fileExt &&
+        fileExt !== validExtension &&
+        fileExt !== ".jpg") /* jpg/jpeg fix */
+    ) {
+      return NextResponse.json(
+        { success: false, error: "فرمت فایل غیرمجاز است." },
+        { status: 400 }
+      );
+    }
+
+    // تولید مسیر زمانی
+    const now = new Date();
+    const relativeDir = path.join(
+      "uploads",
+      now.getFullYear().toString(),
+      (now.getMonth() + 1).toString().padStart(2, "0")
+    );
     const absoluteDir = path.join(process.cwd(), "public", relativeDir);
 
-    // اطمینان از وجود دایرکتوری
+    // ساخت پوشه
     await mkdir(absoluteDir, { recursive: true });
-    // ------------------------------------
 
+    // 5. ساخت نام یکتا (جلوگیری از جایگزینی فایل‌های هم‌نام)
+    // ترکیب نام تمیز شده + عدد رندوم زمانی + پسوند
+    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+    const finalFilename = `${cleanName}-${uniqueSuffix}${validExtension}`;
+    const savePath = path.join(absoluteDir, finalFilename);
+
+    // تبدیل به بافر و ذخیره سازی
     const buffer = Buffer.from(await file.arrayBuffer());
-    const sanitizedFilename = sanitizeFilename(file.name);
-
-    // مسیر کامل ذخیره‌سازی فایل
-    const savePath = path.join(absoluteDir, sanitizedFilename);
-
-    // ذخیره فایل
     await writeFile(savePath, buffer);
 
-    // آدرس عمومی فایل برای استفاده در کلاینت
-    const publicUrl = `/${relativeDir.replace(
-      /\\/g,
-      "/"
-    )}/${sanitizedFilename}`;
+    // نرمال‌سازی URL برای کلاینت
+    const publicUrl = `/${relativeDir
+      .split(path.sep)
+      .join("/")}/${finalFilename}`;
 
     return NextResponse.json({ success: true, url: publicUrl });
   } catch (error) {
-    console.error("Upload API Error:", error);
+    console.error("Secure Upload Error:", error);
     return NextResponse.json(
-      { success: false, error: "خطا در پردازش آپلود." },
+      { success: false, error: "خطای سیستمی در آپلود." },
       { status: 500 }
     );
   }

@@ -25,7 +25,7 @@ const imageApiLoader = ({ src }) => {
   const relativePath = src.startsWith("/uploads/")
     ? src.substring("/uploads/".length)
     : src;
-  return `/api/image/${relativePath}`;
+  return `/media/${relativePath}`;
 };
 
 function SidebarAccordion({

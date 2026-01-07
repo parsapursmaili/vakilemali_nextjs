@@ -12,7 +12,7 @@ export default function customImageLoader({ src, width, quality }) {
       const relPath = src.slice(idx + (src[idx + 7] === "s" ? 8 : 7));
       // width و quality هم می‌توانند به URL اضافه شوند اگر API شما از آنها پشتیبانی کند
       // در API شما این پارامترها فعلاً استفاده نمی‌شوند، اما می‌توانید آنها را در لودر پاس دهید
-      return `/api/image/${encodeURI(relPath)}?w=${width || 1200}&q=${
+      return `/media/${encodeURI(relPath)}?w=${width || 1200}&q=${
         quality || 75
       }`;
     }

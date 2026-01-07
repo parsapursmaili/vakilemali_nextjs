@@ -2,14 +2,14 @@
 
 import { useState, useEffect, useTransition } from "react";
 import Image from "next/image";
-import { X, UploadCloud, Loader2, Library, CheckCircle } from "lucide-react";
+import { X, UploadCloud, Loader2, Library } from "lucide-react";
 import { toast } from "react-hot-toast";
 
 const imageApiLoader = ({ src }) => {
   const relativePath = src.startsWith("/uploads/")
     ? src.substring("/uploads/".length)
     : src;
-  return `/api/image/${relativePath}`;
+  return `/media/${relativePath}`;
 };
 
 export default function MediaLibrary({ onClose, onSelectImage }) {

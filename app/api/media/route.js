@@ -2,55 +2,71 @@ import { NextResponse } from "next/server";
 import path from "path";
 import { readdir, stat } from "fs/promises";
 
-const UPLOADS_DIR = path.join(process.cwd(), "public", "uploads");
+const PUBLIC_DIR = path.join(process.cwd(), "public");
+const UPLOADS_DIR = path.join(PUBLIC_DIR, "uploads");
 
-// تابع بازگشتی برای پیدا کردن تمام فایل‌های تصویر در پوشه‌ها
-async function findImageFiles(dir) {
-  let imageFiles = [];
-  try {
-    const entries = await readdir(dir, { withFileTypes: true });
+async function scanDirectory(dir) {
+  // استفاده از catch داخلی برای جلوگیری از توقف کل پروسه در صورت خطای دسترسی به یک پوشه خاص
+  const entries = await readdir(dir, { withFileTypes: true }).catch(() => []);
 
-    for (const entry of entries) {
-      const fullPath = path.join(dir, entry.name);
-      if (entry.isDirectory()) {
-        // اگر ورودی یک پوشه بود، تابع را برای آن پوشه دوباره اجرا کن
-        imageFiles = imageFiles.concat(await findImageFiles(fullPath));
-      } else if (/\.(jpg|jpeg|png|gif|webp|svg)$/i.test(entry.name)) {
-        // اگر یک فایل تصویر بود، اطلاعات آن را اضافه کن
-        const stats = await stat(fullPath);
-        const relativePath = path.relative(
-          path.join(process.cwd(), "public"),
-          fullPath
-        );
+  // پردازش موازی تمام ورودی‌ها
+  const tasks = entries.map(async (entry) => {
+    const fullPath = path.join(dir, entry.name);
 
-        imageFiles.push({
-          url: `/${relativePath.replace(/\\/g, "/")}`, // اطمینان از اسلش‌های صحیح در URL
-          name: entry.name,
-          createdAt: stats.mtime.toISOString(),
-        });
+    if (entry.isDirectory()) {
+      return scanDirectory(fullPath);
+    }
+
+    // امنیت: اطمینان از اینکه ورودی فقط فایل است (Symlink ها نادیده گرفته می‌شوند)
+    if (entry.isFile() && /\.(jpg|jpeg|png|gif|webp)$/i.test(entry.name)) {
+      try {
+        const fileStat = await stat(fullPath);
+        // ساخت URL استاندارد و مستقل از سیستم عامل
+        const relativePath = path.relative(PUBLIC_DIR, fullPath);
+        const url = "/" + relativePath.split(path.sep).join("/");
+
+        return [
+          {
+            url,
+            name: entry.name,
+            createdAt: fileStat.mtime.toISOString(),
+          },
+        ];
+      } catch {
+        return [];
       }
     }
-  } catch (error) {
-    if (error.code !== "ENOENT") {
-      // اگر پوشه وجود نداشت خطا نده، در غیر این صورت لاگ کن
-      console.error(`Error reading directory ${dir}:`, error);
-    }
-  }
-  return imageFiles;
+    return [];
+  });
+
+  // تجمیع نتایج موازی
+  const results = await Promise.all(tasks);
+  return results.flat();
 }
 
 export async function GET() {
   try {
-    const allFiles = await findImageFiles(UPLOADS_DIR);
+    const files = await scanDirectory(UPLOADS_DIR);
 
-    // مرتب‌سازی همه فایل‌ها از جدیدترین به قدیمی‌ترین
-    allFiles.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    // بهینه‌سازی مرتب‌سازی با مقایسه عددی تایم‌استمپ
+    files.sort(
+      (a, b) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
 
-    return NextResponse.json({ success: true, files: allFiles });
+    return NextResponse.json(
+      { success: true, files },
+      {
+        headers: {
+          // امنیت و پرفورمنس: جلوگیری از درخواست‌های مکرر به دیسک
+          "Cache-Control": "public, s-maxage=10, stale-while-revalidate=59",
+        },
+      }
+    );
   } catch (error) {
     console.error("Media API Error:", error);
     return NextResponse.json(
-      { success: false, error: "خطا در خواندن فایل‌های رسانه." },
+      { success: false, error: "خطا در پردازش فایل‌ها." },
       { status: 500 }
     );
   }
