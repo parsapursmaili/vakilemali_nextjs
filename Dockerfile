@@ -2,7 +2,7 @@
 FROM node:20-alpine AS builder
 WORKDIR /app
 COPY package*.json ./
-RUN npm ci
+RUN npm install
 COPY . .
 RUN npm run build
 
@@ -11,11 +11,10 @@ FROM node:20-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 
-# استفاده از یوزر node که از قبل با ID 1000 در این ایمیج وجود دارد
-# فقط پوشه‌های لازم را می‌سازیم و مالکیت را به node می‌دهیم
-RUN mkdir -p .next/cache public storage && chown -R node:node /app
+# استفاده از یوزر node (ID 1000)
+RUN mkdir -p .next/cache public && chown -R node:node /app
 
-# کپی فایل‌ها با مالکیت یوزر node
+# کپی فایل‌های Standalone
 COPY --from=builder --chown=node:node /app/.next/standalone ./
 COPY --from=builder --chown=node:node /app/.next/static ./.next/static
 COPY --from=builder --chown=node:node /app/public ./public
