@@ -2,14 +2,15 @@ import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 import { CalendarDays, FolderOpen, User, List } from "lucide-react";
-import ConsultationCTA from "@/components/ConsultationCTA";
-import FloatingCTA from "@/components/FloatingCTA";
 import LazyVideoEmbed from "./LazyVideoEmbed";
 import { getPostData, getRelatedPosts } from "./post";
 import PostsSlider from "@/components/PostsSlider";
 import PostViews from "@/components/PostViews";
 import PostCommentsSection from "@/components/PostCommentsSection";
 import PostSchemaScript from "./PostSchemaScript";
+import ArticleEndCTA from "@/components/ConsultationCTA";
+import FloatingCTA from "@/components/FloatingCTA";
+
 function cleanImageUrlPath(src) {
   if (!src) return undefined;
   try {
@@ -38,7 +39,6 @@ function processContentAndExtractTOC(html) {
   });
 
   let content = processedParts.join("").replace(/<p>\s*<\/p>/g, "");
-
   content = content.replace(/<h1/g, "<h2").replace(/<\/h1>/g, "</h2>");
 
   const toc = [];
@@ -49,7 +49,7 @@ function processContentAndExtractTOC(html) {
       const id = `toc-${toc.length}`;
       toc.push({ id, text: cleanText, level: parseInt(level) });
       return `<h${level} id="${id}"${attrs}>${text}</h${level}>`;
-    }
+    },
   );
 
   return { finalHtml, toc };
@@ -60,10 +60,11 @@ export async function generateStaticParams() {
 }
 
 export async function generateMetadata({ params }) {
-  const { post, terms } = await getPostData(params.slug);
+  const awaitedParams = await params;
+  const { post, terms } = await getPostData(awaitedParams.slug);
   if (!post) notFound();
 
-  const postUrl = `/${params.slug}`;
+  const postUrl = `/${awaitedParams.slug}`;
   const organizationUrl = "https://vakilemali.com";
   const authorName = "مرضیه توانگر";
 
@@ -97,7 +98,7 @@ export async function generateMetadata({ params }) {
       article: {
         publishedTime: new Date(post.created_at).toISOString(),
         modifiedTime: new Date(
-          post.updated_at || post.created_at
+          post.updated_at || post.created_at,
         ).toISOString(),
         author: [authorName],
       },
@@ -108,12 +109,19 @@ export async function generateMetadata({ params }) {
       description,
       images: [absoluteImageUrl],
     },
-    viewport: { width: "device-width", initialScale: 1, maximumScale: 1 },
   };
 }
 
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+};
+
 export default async function SinglePostPage({ params }) {
-  const slug = params.slug;
+  const awaitedParams = await params;
+  const slug = awaitedParams.slug;
+
   const { post, terms } = await getPostData(slug);
   if (!post) notFound();
 
@@ -127,9 +135,6 @@ export default async function SinglePostPage({ params }) {
   });
 
   const { finalHtml, toc } = processContentAndExtractTOC(post.content);
-
-  const CTA_PHONE_NUMBER = "۰۹۰۰ ۲۴۵ ۰۰۹۰";
-  const CTA_TELEGRAM_ID = "vakile_mali";
   const displayDate = post.updated_at || post.created_at;
 
   return (
@@ -140,6 +145,7 @@ export default async function SinglePostPage({ params }) {
         slug={slug}
         cleanImageUrlPath={cleanImageUrlPath}
       />
+
       <main className="w-full !p-0">
         <article className="w-full sm:max-w-4xl sm:mx-auto bg-white dark:bg-[#1a1a1a] sm:shadow-md sm:rounded-2xl sm:border sm:border-muted/20 px-4 py-8 sm:px-10 sm:py-12">
           {post.thumbnail && (
@@ -210,13 +216,13 @@ export default async function SinglePostPage({ params }) {
           </header>
 
           {post.video_link && (
-            <div className="w-full mb-10 rounded-xl overflow-hidden">
+            <div className="w-full mb-10 rounded-xl overflow-hidden mt-8">
               <LazyVideoEmbed embedHtml={post.video_link} />
             </div>
           )}
 
           {toc.length > 0 && (
-            <nav className="mb-10 p-6 bg-muted/20 dark:bg-muted/5 border border-muted/30 rounded-xl">
+            <nav className="mb-10 p-6 bg-muted/20 dark:bg-muted/5 border border-muted/30 rounded-xl mt-6">
               <div className="flex items-center gap-2 mb-4 text-foreground font-bold text-lg">
                 <List className="w-5 h-5 text-primary" />
                 <span>فهرست مطالب</span>
@@ -258,27 +264,24 @@ export default async function SinglePostPage({ params }) {
                   max-w-prose
                   lg:max-w-3xl
                 "
-                dangerouslySetInnerHTML={{ __html: finalHtml }}
-              />
+              >
+                <div dangerouslySetInnerHTML={{ __html: finalHtml }} />
+              </div>
             </div>
           </div>
         </article>
 
+        <div className="w-full sm:max-w-4xl sm:mx-auto mt-6 px-4 sm:px-0">
+          <ArticleEndCTA categorySlug={primaryCategory?.slug} />
+        </div>
+
         <div className="w-full sm:max-w-4xl sm:mx-auto mt-10 px-4 sm:px-0 space-y-12 mb-20">
-          <ConsultationCTA
-            phoneNumber="09002450090"
-            categorySlug={primaryCategory?.slug}
-          />
           <PostsSlider title="مطالب پیشنهادی" posts={relatedPosts} />
           <PostCommentsSection postId={post.id} postSlug={slug} />
         </div>
       </main>
 
-      <FloatingCTA
-        phoneNumber={CTA_PHONE_NUMBER}
-        telegramId={CTA_TELEGRAM_ID}
-        categorySlug={primaryCategory?.slug}
-      />
+      <FloatingCTA categorySlug={primaryCategory?.slug} />
     </>
   );
 }

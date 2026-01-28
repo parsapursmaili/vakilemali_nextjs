@@ -5,6 +5,10 @@ import { isAuthenticated } from "@/actions/auth";
 import { permanentRedirect } from "next/navigation";
 import { unstable_cache } from "next/cache";
 import { cookies, headers } from "next/headers";
+
+/**
+ * دریافت اطلاعات یک پست بر اساس slug
+ */
 export async function getPostData(slug) {
   const decodedSlug = decodeURIComponent(slug);
 
@@ -25,9 +29,7 @@ export async function getPostData(slug) {
 
         const post = rows[0];
 
-        // نکته: ریدایرکت را اینجا اجرا نمی‌کنیم، فقط دیتا را برمی‌گردانیم
-        // وضعیت منتشر نشده را هم اینجا فیلتر نمی‌کنیم تا کش معتبر بماند و بیرون هندل شود
-
+        // دریافت دسته‌بندی‌ها و ترم‌های مرتبط
         const [termsResult] = await db.query(
           `SELECT t.id, t.name, t.slug 
            FROM terms t 
@@ -38,14 +40,17 @@ export async function getPostData(slug) {
 
         return { post, terms: termsResult };
       } catch (error) {
-        console.error("Database Error fetching post data:", error.message);
+        console.error(
+          "[PostData] Database Error fetching post data:",
+          error.message
+        );
         return { post: null, terms: [] };
       }
     },
     [`single-post-data-${decodedSlug}`],
     {
       tags: [`post-${decodedSlug}`],
-      revalidate: 3600,
+      revalidate: 3600, // کش ۱ ساعته
     }
   );
 
@@ -64,42 +69,46 @@ export async function getPostData(slug) {
   return data;
 }
 
+/**
+ * افزایش بازدید یک پست
+ */
 export async function incrementPostViews(postId) {
   if (!postId) return false;
 
-  // ۱. بررسی لاگین بودن (طبق منطق خودتان)
-  if (await isAuthenticated()) return false;
-
-  const headersList = headers();
-  const userAgent = headersList.get("user-agent") || "";
-
-  // ۲. شناسایی پیشرفته ربات‌ها (Bot Detection)
-  const botPattern =
-    /bot|crawler|spider|crawling|slurp|bing|google|baidu|yandex|facebookexternalhit|twitterbot|rogerbot|linkedinbot|embedly|quora\slink\spreview|showyoubot|outbrain|pinterest\/0\.|zeitgeist|vkShare|W3C_Validator|whatsapp/i;
-
-  if (botPattern.test(userAgent)) {
-    // اگر ربات بود، هیچ بازدیدی ثبت نکن
-    return false;
-  }
-
-  // ۳. بررسی کوکی بازدید کل سایت (۱۲ ساعته)
-  const cookieStore = cookies();
-  const hasVisitedRecently = cookieStore.get("site_visited");
-
-  if (hasVisitedRecently) {
-    // اگر کاربر در ۱۲ ساعت گذشته از هر صفحه‌ای بازدید کرده باشد، دیگر ثبت نکن
-    return false;
-  }
-
   try {
-    // ۴. بروزرسانی دیتابیس
-    // آپدیت تعداد کل بازدید پست
+    // بررسی لاگین بودن
+    if (await isAuthenticated()) return false;
+
+    // گرفتن header های کاربر
+    const headersList = await headers();
+    const userAgent = headersList.get("user-agent") || "";
+
+    // شناسایی ربات‌ها
+    const botPattern =
+      /bot|crawler|spider|crawling|slurp|bing|google|baidu|yandex|facebookexternalhit|twitterbot|rogerbot|linkedinbot|embedly|quora\slink\spreview|showyoubot|outbrain|pinterest\/0\.|zeitgeist|vkShare|W3C_Validator|whatsapp/i;
+    if (botPattern.test(userAgent)) return false;
+
+    // بررسی کوکی بازدید کل سایت (۱۲ ساعته)
+    const cookieStore = await cookies();
+    const hasVisitedRecently = cookieStore.get("site_visited");
+    if (hasVisitedRecently) return false;
+
+    // افزایش بازدید در جدول posts
     await db.execute(
       "UPDATE posts SET view_count = view_count + 1 WHERE id = ?",
       [postId]
     );
 
-    // ثبت در آمار روزانه
+    // ارسال fire-and-forget به API بله
+    fetch(`${process.env.NEXT_PUBLIC_SITE_URL}/api/bale/visit`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ postId }),
+    }).catch((err) => {
+      console.error("[Bale API] Fetch Error:", err);
+    });
+
+    // ثبت بازدید روزانه
     const today = new Date().toISOString().slice(0, 10);
     await db.execute(
       `INSERT INTO post_view (post_id, view_date, view_count) VALUES (?, ?, 1)
@@ -107,9 +116,10 @@ export async function incrementPostViews(postId) {
       [postId, today]
     );
 
+    // ست کردن کوکی
     cookieStore.set("site_visited", "true", {
       path: "/",
-      maxAge: 60 * 60 * 12, // ۱۲ ساعت به ثانیه
+      maxAge: 60 * 60 * 12, // ۱۲ ساعت
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
@@ -117,11 +127,14 @@ export async function incrementPostViews(postId) {
 
     return true;
   } catch (error) {
-    console.error("Database Error incrementing view:", error);
+    console.error("[incrementPostViews] Database or server error:", error);
     return false;
   }
 }
 
+/**
+ * دریافت پست‌های مرتبط
+ */
 export async function getRelatedPosts({
   limit = 6,
   excludeId = null,
@@ -143,8 +156,7 @@ export async function getRelatedPosts({
               AND pt.term_id = ?
             GROUP BY p.id
             ORDER BY p.created_at DESC
-            LIMIT ?
-          `;
+            LIMIT ?`;
           const [relatedRows] = await db.query(relatedQuery, [
             excludeId || 0,
             categoryId,
@@ -169,28 +181,22 @@ export async function getRelatedPosts({
               AND p.id NOT IN (?)
             GROUP BY p.id
             ORDER BY p.created_at DESC
-            LIMIT ?
-          `;
-
+            LIMIT ?`;
           const [latestRows] = await db.query(latestQuery, [
             excludeIds.length > 0 ? excludeIds : [0],
             remainingLimit,
           ]);
-
           relatedPosts.push(...latestRows);
         }
 
         return { posts: relatedPosts };
       } catch (error) {
-        console.error("Database Error fetching related posts:", error.message);
+        console.error("[getRelatedPosts] Database Error:", error.message);
         return { posts: [] };
       }
     },
     [`related-posts-${categoryId}-${excludeId}-${limit}`],
-    {
-      tags: ["posts-list"],
-      revalidate: 3600,
-    }
+    { tags: ["posts-list"], revalidate: 3600 }
   );
 
   return getCachedRelated();
