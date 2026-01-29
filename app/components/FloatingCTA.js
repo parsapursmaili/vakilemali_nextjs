@@ -107,7 +107,7 @@ export default function FloatingCTA({ phoneNumber, categorySlug }) {
       ? str.replace(/[۰-۹]/g, (d) => "۰۱۲۳۴۵۶۷۸۹".indexOf(d)).replace(/\D/g, "")
       : "";
 
-  const rawPhone = toEnglishDigits(phoneNumber || "09120000000");
+  const rawPhone = toEnglishDigits(phoneNumber || "09002450090");
   const phoneHref = `tel:${rawPhone}`;
   const whatsappHref = `https://wa.me/98${rawPhone.substring(
     1,
@@ -174,7 +174,7 @@ export default function FloatingCTA({ phoneNumber, categorySlug }) {
                 className="text-red-400 md:text-white animate-pulse !mb-[-7px]"
               />
               <p className=" !mb-[-7px] text-[10px] md:text-[11px] font-bold text-red-300 md:text-white whitespace-nowrap">
-                ظرفیت بررسی اولیه امروز محدود است!
+                اقدام سریع می‌تواند جلوی ضرر را بگیرد
               </p>
             </div>
 
@@ -225,9 +225,6 @@ export default function FloatingCTA({ phoneNumber, categorySlug }) {
                       تماس
                     </span>
                   </div>
-                  <span className="text-[9px] text-white/40 mt-0.5">
-                    اضطراری
-                  </span>
                 </a>
 
                 {/* Primary CTA (WhatsApp) - Gradient & Hero */}

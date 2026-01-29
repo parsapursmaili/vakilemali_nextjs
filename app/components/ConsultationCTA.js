@@ -138,7 +138,7 @@ export default function ArticleEndCTA({
               <div className="flex justify-center md:justify-start">
                 <div className="inline-flex items-center gap-1.5 bg-red-500/10 border border-red-500/30 text-red-300 px-3 py-1 rounded-full text-[11px] md:text-xs font-bold animate-pulse">
                   <Clock size={14} />
-                  <span>زمان پاسخگویی: کمتر از ۱۵ دقیقه</span>
+                  <span>پاسخگویی در سریع ترین زمان ممکن</span>
                 </div>
               </div>
 
