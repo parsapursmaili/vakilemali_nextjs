@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useTransition, useEffect, useState } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
   FilePenLine,
@@ -11,21 +11,23 @@ import {
   ListChecks,
   LogOut,
   Pen,
-  Loader2,
   ShieldCheck,
 } from "lucide-react";
 import { logout, isAuthenticated } from "@/actions/auth";
 import { getPostIdBySlug } from "@/actions/adminBar";
 
 export function AdminBar() {
-  const [isPending, startTransition] = useTransition();
+  const [isPendingLogout, startTransition] = useTransition();
   const [loading, setLoading] = useState(true);
   const [authenticated, setAuthenticated] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
-  const pathname = usePathname();
-  const router = useRouter();
+  // استیت برای ذخیره لینک ویرایش
+  const [editRoute, setEditRoute] = useState(null);
 
+  const pathname = usePathname();
+
+  // 1. بررسی وضعیت لاگین
   useEffect(() => {
     const checkAuth = async () => {
       try {
@@ -40,6 +42,7 @@ export function AdminBar() {
     checkAuth();
   }, []);
 
+  // 2. هندل کردن اسکرول برای شفافیت هدر
   useEffect(() => {
     const handleScroll = () => {
       setScrolled(window.scrollY > 10);
@@ -48,6 +51,42 @@ export function AdminBar() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  // 3. لاجیک جدید: پیدا کردن آیدی پست در پس‌زمینه به محض تغییر صفحه
+  useEffect(() => {
+    let isMounted = true;
+
+    const resolveEditLink = async () => {
+      // اگر در صفحه ادمین هستیم، نیازی به جستجو نیست
+      if (pathname.startsWith("/admin")) {
+        if (isMounted) setEditRoute(null);
+        return;
+      }
+
+      try {
+        // درخواست به سرور برای گرفتن آیدی
+        const postId = await getPostIdBySlug(pathname);
+
+        if (isMounted) {
+          if (postId) {
+            setEditRoute(`/admin/posts/${postId}`);
+          } else {
+            setEditRoute(null);
+          }
+        }
+      } catch (error) {
+        if (isMounted) setEditRoute(null);
+      }
+    };
+
+    if (authenticated) {
+      resolveEditLink();
+    }
+
+    return () => {
+      isMounted = false;
+    };
+  }, [pathname, authenticated]); // اجرا با تغییر مسیر یا وضعیت احراز هویت
+
   if (loading || !authenticated) {
     return null;
   }
@@ -55,25 +94,6 @@ export function AdminBar() {
   const handleLogout = () => {
     startTransition(async () => {
       await logout();
-    });
-  };
-
-  const handleEditCurrentPage = () => {
-    startTransition(async () => {
-      if (pathname.startsWith("/admin") || pathname === "/") {
-        router.push("/admin/posts");
-        return;
-      }
-      try {
-        const postId = await getPostIdBySlug(pathname);
-        if (postId) {
-          router.push(`/admin/posts/${postId}`);
-        } else {
-          router.push("/admin/posts");
-        }
-      } catch (error) {
-        router.push("/admin/posts");
-      }
     });
   };
 
@@ -87,8 +107,8 @@ export function AdminBar() {
           w-8 h-8 sm:w-10 sm:h-10
           ${
             isActive
-              ? "bg-[#c5892f] !text-white shadow-[0_0_10px_rgba(197,137,47,0.6)] scale-105" // ✅ !text-white اضافه شد
-              : "!text-gray-400 hover:bg-white/10 hover:!text-white hover:scale-105" // ✅ !text-gray-400 و hover:!text-white اضافه شد
+              ? "bg-[#c5892f] !text-white shadow-[0_0_10px_rgba(197,137,47,0.6)] scale-105"
+              : "!text-gray-400 hover:bg-white/10 hover:!text-white hover:scale-105"
           }
         `}
       >
@@ -128,7 +148,7 @@ export function AdminBar() {
       `}
     >
       <nav className="mx-auto flex h-full max-w-[1600px] items-center justify-between px-2 sm:px-6">
-        {/* سمت راست */}
+        {/* سمت راست: لوگو و دکمه ویرایش */}
         <div className="flex items-center gap-2 sm:gap-5 h-full shrink-0">
           <div className="hidden lg:flex items-center gap-3 select-none">
             <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-gradient-to-br from-[#c5892f] to-[#7a5216] shadow-lg border border-[#c5892f]/50">
@@ -141,30 +161,26 @@ export function AdminBar() {
             </div>
           </div>
 
-          <div className="hidden sm:block h-8 w-[1px] bg-white/10"></div>
+          {/* خط جداکننده فقط اگر دکمه ویرایش وجود داشته باشد نمایش داده شود */}
+          {editRoute && (
+            <>
+              <div className="hidden sm:block h-8 w-[1px] bg-white/10"></div>
 
-          <button
-            onClick={handleEditCurrentPage}
-            disabled={isPending}
-            className={`
-              relative flex items-center justify-center gap-2 rounded-lg transition-all duration-300 group overflow-hidden
-              w-9 h-9 sm:w-auto sm:px-4 sm:h-9
-              ${isPending ? "cursor-wait opacity-80" : "cursor-pointer"}
-            `}
-          >
-            <div className="absolute inset-0 bg-[#c5892f]/10 border border-[#c5892f]/40 rounded-lg group-hover:bg-[#c5892f] group-hover:border-[#c5892f] transition-all duration-300"></div>
+              <Link
+                href={editRoute}
+                className="relative flex items-center justify-center gap-2 rounded-lg transition-all duration-300 group overflow-hidden w-9 h-9 sm:w-auto sm:px-4 sm:h-9 cursor-pointer"
+              >
+                <div className="absolute inset-0 bg-[#c5892f]/10 border border-[#c5892f]/40 rounded-lg group-hover:bg-[#c5892f] group-hover:border-[#c5892f] transition-all duration-300"></div>
 
-            <span className="relative z-10 flex items-center gap-2">
-              {isPending ? (
-                <Loader2 className="w-4 h-4 text-[#c5892f] animate-spin !text-[#c5892f] group-hover:!text-white" />
-              ) : (
-                <Pen className="w-4 h-4 text-[#c5892f] group-hover:!text-white transition-colors duration-300" />
-              )}
-              <span className="hidden sm:inline text-xs font-bold text-[#c5892f] group-hover:!text-white transition-colors duration-300 pt-[1px]">
-                {isPending ? "جستجو..." : "ویرایش صفحه"}
-              </span>
-            </span>
-          </button>
+                <span className="relative z-10 flex items-center gap-2">
+                  <Pen className="w-4 h-4 text-[#c5892f] group-hover:!text-white transition-colors duration-300" />
+                  <span className="hidden sm:inline text-xs font-bold text-[#c5892f] group-hover:!text-white transition-colors duration-300 pt-[1px]">
+                    ویرایش صفحه
+                  </span>
+                </span>
+              </Link>
+            </>
+          )}
         </div>
 
         {/* منوی وسط */}
@@ -181,11 +197,11 @@ export function AdminBar() {
           ))}
         </div>
 
-        {/* سمت چپ */}
+        {/* سمت چپ: دکمه خروج */}
         <div className="flex items-center h-full shrink-0">
           <button
             onClick={handleLogout}
-            disabled={isPending}
+            disabled={isPendingLogout}
             className="group flex items-center justify-center gap-2 w-9 h-9 sm:w-auto sm:px-4 sm:py-2 rounded-xl !text-gray-400 hover:!text-red-400 hover:bg-red-500/10 transition-all duration-300"
           >
             <span className="hidden sm:inline text-xs font-medium pt-[1px] opacity-80 group-hover:opacity-100">

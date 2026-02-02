@@ -2,7 +2,9 @@ import { getPostByIdForEditPage, getAllTerms } from "../actions";
 import PostEditClientUI from "../components/post-edit/PostEditClientUI";
 
 export default async function EditPostPage({ params }) {
-  const { id } = params;
+  // 👇 تغییر اصلی اینجا انجام شد: اضافه کردن await قبل از params
+  const { id } = await params;
+
   const isNewPost = id === "new";
 
   if (isNewPost) {
@@ -31,7 +33,7 @@ export default async function EditPostPage({ params }) {
       categoryIds: [],
       comments: [],
       video_link: "",
-      redirect_url: "", // ✨ فیلد جدید
+      redirect_url: "",
     };
 
     return (
