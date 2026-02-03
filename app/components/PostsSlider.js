@@ -1,28 +1,16 @@
 import Image from "next/image";
 import Link from "next/link";
 
-function cleanImageUrlPath(src) {
-  if (!src) return "/images/placeholder.png";
-  try {
-    const url = src.startsWith("http") ? new URL(src).pathname : src;
-    const idx = url.search(/uploads?\//i);
-    const path = idx !== -1 ? url.slice(idx) : url;
-    return `/${path.replace(/-\d+x\d+\./, ".").replace(/^\/+/, "")}`;
-  } catch {
-    return src;
-  }
-}
-
 export default function PostsSlider({ posts, title }) {
   if (!posts || posts.length === 0) {
     return null;
   }
 
   return (
-    <section className="w-full py-3 ">
+    <section className="w-full py-3">
       <div className="w-full max-w-7xl mx-auto px-4">
         {title && (
-          <h2 className="text-3xl font-bold text-primary mb-8 text-center ">
+          <h2 className="text-3xl font-bold text-primary mb-8 text-center">
             {title}
           </h2>
         )}
@@ -36,24 +24,22 @@ export default function PostsSlider({ posts, title }) {
             <Link
               key={post.id}
               href={`/${post.slug}`}
-              // **تغییر اعمال شده برای تضمین وجود حداقل ۲ آیتم در هر خط:**
-              // w-[calc(50%-10px)]: تضمین می‌کند که عرض آیتم کمتر از نصف فضای موجود باشد (برای جا دادن آیتم دوم و فاصله).
-              // max-w-[150px]: اندازه اصلی w-[150px] را به عنوان حداکثر عرض در موبایل حفظ می‌کند.
+              // Responsive card sizing: Ensures 2 items per row on mobile while limiting max width
               className="group flex flex-col items-start gap-3 w-[calc(50%-10px)] max-w-[150px] sm:w-[180px]"
             >
-              {/* کانتینر تصویر (با منطق مدیریت تصویر شاخص نبودن) */}
+              {/* Image Container */}
               <div className="relative w-full overflow-hidden rounded-xl shadow-md transition-shadow duration-300 group-hover:shadow-xl">
                 <div className="aspect-square">
                   {post.thumbnail ? (
                     <Image
-                      src={cleanImageUrlPath(post.thumbnail)}
+                      src={`/uploads/${post.thumbnail}`}
                       alt={post.title}
                       fill
                       className="object-cover transition-transform duration-500 group-hover:scale-110"
                       sizes="(max-width: 768px) 30vw, (max-width: 1200px) 15vw, 180px"
                     />
                   ) : (
-                    // باکس جایگزین جذاب برای زمانی که تصویر شاخص وجود ندارد
+                    // Fallback placeholder when no thumbnail is available
                     <div
                       className="
                         w-full h-full 
@@ -63,9 +49,8 @@ export default function PostsSlider({ posts, title }) {
                         transition-colors duration-300
                         group-hover:bg-gray-200 dark:group-hover:bg-gray-700
                       "
-                      title="تصویر یافت نشد"
+                      title="No Image Available"
                     >
-                      {/* آیکون ساده عکس برای نمایش بصری */}
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
                         className="h-1/3 w-1/3 opacity-70"
@@ -85,7 +70,7 @@ export default function PostsSlider({ posts, title }) {
                 </div>
               </div>
 
-              {/* کانتینر محتوا (بدون تغییر) */}
+              {/* Text Content */}
               <div className="flex flex-col items-start w-full">
                 {post.categoryName && (
                   <span className="mb-1 text-xs font-semibold text-primary bg-muted px-2 py-0.5 rounded-full">

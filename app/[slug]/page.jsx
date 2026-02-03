@@ -11,19 +11,6 @@ import PostSchemaScript from "./PostSchemaScript";
 import ArticleEndCTA from "@/components/ConsultationCTA";
 import FloatingCTA from "@/components/FloatingCTA";
 
-function cleanImageUrlPath(src) {
-  if (!src) return undefined;
-  try {
-    const url = src.startsWith("http") ? new URL(src).pathname : src;
-    const idx = url.search(/uploads?\//i);
-    let path = idx !== -1 ? url.slice(idx) : url;
-    path = path.replace(/-\d+x\d+\./, ".");
-    return `/${path.replace(/^\/+/, "")}`;
-  } catch {
-    return src;
-  }
-}
-
 function processContentAndExtractTOC(html) {
   if (!html) return { finalHtml: "", toc: [] };
 
@@ -74,10 +61,11 @@ export async function generateMetadata({ params }) {
       ? post.content.substring(0, 150).replace(/<[^>]*>?/gm, "") + "..."
       : post.title);
 
-  const image = post.thumbnail
-    ? cleanImageUrlPath(post.thumbnail)
-    : "/logo.png";
-  const absoluteImageUrl = `${organizationUrl}${image}`;
+  // تغییر: استفاده مستقیم از آدرس تصویر بدون پردازش
+  const image = post.thumbnail ? post.thumbnail : "/logo.png";
+  const absoluteImageUrl = image.startsWith("http")
+    ? image
+    : `${organizationUrl}${image}`;
 
   return {
     title: post.title,
@@ -139,12 +127,7 @@ export default async function SinglePostPage({ params }) {
 
   return (
     <>
-      <PostSchemaScript
-        post={post}
-        terms={terms}
-        slug={slug}
-        cleanImageUrlPath={cleanImageUrlPath}
-      />
+      <PostSchemaScript post={post} terms={terms} slug={slug} />
 
       <main className="w-full !p-0">
         <article className="w-full sm:max-w-4xl sm:mx-auto bg-white dark:bg-[#1a1a1a] sm:shadow-md sm:rounded-2xl sm:border sm:border-muted/20 px-4 py-8 sm:px-10 sm:py-12">
@@ -154,12 +137,13 @@ export default async function SinglePostPage({ params }) {
                 <div className="group relative overflow-hidden rounded-2xl sm:rounded-3xl bg-white dark:bg-[#0f0f0f] shadow-lg ring-1 ring-black/5 dark:ring-white/10 transition-all duration-500 hover:shadow-2xl hover:shadow-primary/10">
                   <div className="aspect-square w-full relative">
                     <Image
-                      src={cleanImageUrlPath(post.thumbnail)}
+                      src={`/uploads/${post.thumbnail}`}
                       alt={post.title}
                       fill
                       className="object-cover"
                       priority
                       sizes="(max-width: 640px) 90vw, (max-width: 1024px) 500px, 640px"
+                      decoding="sync"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-transparent via-transparent to-black/30 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                     <div className="absolute inset-0 ring-4 ring-transparent group-hover:ring-primary/20 transition-all duration-500 pointer-events-none" />

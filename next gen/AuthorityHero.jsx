@@ -39,7 +39,7 @@ const AuthorityHero = ({ categoryName, authorImage, onOpenModal }) => {
             <div className="relative shrink-0">
               <div className="relative w-16 h-16 md:w-20 md:h-20 rounded-full p-[2px] bg-gradient-to-tr from-[#C5A059] to-[#1B5E20]">
                 <Image
-                  src={authorImage || "/lawyer-avatar.webp"}
+                  src={authorImage || "/uploads/lawyer-avatar.webp"}
                   alt="مرضیه توانگر"
                   width={80}
                   height={80}

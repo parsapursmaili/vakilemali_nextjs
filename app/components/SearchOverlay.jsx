@@ -251,7 +251,7 @@ const SearchOverlay = memo(({ isOpen, onClose }) => {
                   {/* Thumbnail */}
                   <div className="relative w-[60px] h-[60px] flex-shrink-0 rounded-lg overflow-hidden border border-muted/50 bg-muted">
                     <Image
-                      src={`/${post.thumbnail}`}
+                      src={`/uploads/${post.thumbnail}`}
                       alt={post.title}
                       fill
                       className="object-cover transition-transform duration-500 group-hover:scale-110"

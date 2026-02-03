@@ -1,6 +1,3 @@
-// next.config.mjs
-import customImageLoader from "./customImageLoader.js"; // 💡 اصلاح شد: واردات به صورت Default Import
-
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
@@ -9,16 +6,11 @@ const nextConfig = {
   },
   output: "standalone",
   images: {
-    loader: "custom",
-    loaderFile: "./customImageLoader.js",
-    deviceSizes: [720],
-    imageSizes: [720],
-    formats: ["image/webp"],
+    unoptimized: true, // خیالت راحت، این یعنی نکست جی‌اس فقط آدرس را چاپ می‌کند و دخالتی نمی‌کند
     remotePatterns: [
       { protocol: "https", hostname: "**.vakilemali.ir" },
       { protocol: "https", hostname: "**.gravatar.com" },
     ],
-    minimumCacheTTL: 60 * 60 * 24 * 30,
   },
   async redirects() {
     return [
@@ -32,8 +24,6 @@ const nextConfig = {
         destination: "/articles/صفر-تا-صد-شکایت-چک",
         permanent: true,
       },
-
-      // هر تعداد که بخوای می‌تونی اینجا اضافه کنی...
     ];
   },
   poweredByHeader: false,

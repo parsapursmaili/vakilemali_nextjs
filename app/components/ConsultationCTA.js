@@ -90,7 +90,7 @@ export default function ArticleEndCTA({
 
               <div className="relative w-40 h-40 md:w-48 md:h-48 rounded-full border-[6px] border-slate-900 bg-slate-800 shadow-2xl overflow-hidden ring-1 ring-white/10">
                 <Image
-                  src="/lawyer-avatar.webp"
+                  src="/uploads/lawyer-avatar.webp"
                   alt={lawyerName}
                   fill
                   className="object-cover transform transition-transform duration-700 group-hover:scale-105"

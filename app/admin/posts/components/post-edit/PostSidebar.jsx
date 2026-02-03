@@ -414,11 +414,11 @@ export default function PostSidebar({
 
       <SidebarAccordion title="تصویر شاخص" icon={ImageIcon}>
         <div className="space-y-3">
+          {console.log(postData.thumbnail)}
           {postData.thumbnail ? (
             <div className="relative w-full aspect-video rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 group">
               <Image
-                loader={imageApiLoader}
-                src={postData.thumbnail}
+                src={`/uploads/${postData.thumbnail}`}
                 alt="پیش‌نمایش"
                 fill
                 className="object-cover transition-transform duration-500 group-hover:scale-105"
@@ -493,7 +493,7 @@ export default function PostSidebar({
                       </span>
                       <span className="text-[10px] text-gray-400">
                         {new Date(comment.created_at).toLocaleDateString(
-                          "fa-IR"
+                          "fa-IR",
                         )}
                       </span>
                     </div>
@@ -502,15 +502,15 @@ export default function PostSidebar({
                         comment.status === "approved"
                           ? "bg-green-100 text-green-700 border border-green-200"
                           : comment.status === "pending"
-                          ? "bg-amber-50 text-amber-700 border border-amber-200"
-                          : "bg-red-50 text-red-700 border border-red-200"
+                            ? "bg-amber-50 text-amber-700 border border-amber-200"
+                            : "bg-red-50 text-red-700 border border-red-200"
                       }`}
                     >
                       {comment.status === "approved"
                         ? "تایید شده"
                         : comment.status === "pending"
-                        ? "در انتظار"
-                        : "اسپم"}
+                          ? "در انتظار"
+                          : "اسپم"}
                     </span>
                   </div>
 

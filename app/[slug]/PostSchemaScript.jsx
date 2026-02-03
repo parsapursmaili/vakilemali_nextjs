@@ -8,7 +8,6 @@ export default function PostSchemaScript({
   post,
   terms,
   slug,
-  cleanImageUrlPath,
 }) {
   if (!post) return null;
 
@@ -33,7 +32,7 @@ export default function PostSchemaScript({
   const description = post.excerpt || cleanContent.substring(0, 150) + "...";
 
   const image = post.thumbnail
-    ? cleanImageUrlPath(post.thumbnail)
+    ? post.thumbnail
     : "/logo.png";
   const absoluteImageUrl = `${organizationUrl}${image}`;
 

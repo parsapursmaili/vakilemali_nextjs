@@ -50,7 +50,7 @@ export default function AboutHero() {
           <div className="order-1 lg:order-2 relative max-w-md mx-auto lg:max-w-full">
             <div className="relative rounded-3xl overflow-hidden border-4 border-[var(--background)] shadow-2xl">
               <Image
-                src="/lawyer-full.jpg"
+                src="/uploads/lawyer-full.jpg"
                 alt="مرضیه توانگر - وکیل پایه یک دادگستری، عضو کانون وکلای ایران"
                 width={600}
                 height={750}

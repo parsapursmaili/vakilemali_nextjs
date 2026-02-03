@@ -152,7 +152,6 @@ export default function MediaLibrary({ onClose, onSelectImage }) {
                         }}
                       >
                         <Image
-                          loader={imageApiLoader}
                           src={file.url}
                           alt={file.name}
                           fill
