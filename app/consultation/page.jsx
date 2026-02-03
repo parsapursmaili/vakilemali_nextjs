@@ -129,7 +129,7 @@ export default function UltimatePremiumLanding() {
         <div className="absolute inset-0 z-0 overflow-hidden">
           <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-[#c5892f]/10 blur-[150px] rounded-full -translate-y-1/2 translate-x-1/2"></div>
           <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-blue-500/10 blur-[120px] rounded-full translate-y-1/2 -translate-x-1/2"></div>
-          <div className="absolute inset-0 opacity-[0.03] bg-[url('https://www.transparenttextures.com/patterns/blueprint.png')]"></div>
+          <div className="absolute inset-0 opacity-[0.03]"></div>
         </div>
 
         <div className="max-w-6xl mx-auto relative z-10 text-center">
@@ -459,7 +459,7 @@ export default function UltimatePremiumLanding() {
       {/* 7. Final CTA - قاطع و با فوریت */}
       <section className="py-32 px-4 relative overflow-hidden">
         <div className="max-w-5xl mx-auto !bg-gradient-to-br from-[#1a2b4c] to-[#1e3a8a] rounded-[4rem] p-12 md:p-24 text-center text-white shadow-2xl relative">
-          <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]"></div>
+          <div className="absolute inset-0 opacity-10 "></div>
           <div className="relative z-10">
             <h2 className="text-4xl md:text-6xl !font-black mb-10 leading-tight">
               تصمیم امروز شما، <br />{" "}

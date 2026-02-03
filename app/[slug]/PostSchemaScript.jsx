@@ -21,7 +21,7 @@ export default function PostSchemaScript({
   const authorName = "مرضیه توانگر";
   const organizationName = "وکیل مالی";
   const organizationUrl = "https://vakilemali.com";
-  const organizationLogo = "/logo.png";
+  const organizationLogo = "/logo.webp";
 
   const title = post.title;
   // حذف تگ‌های HTML از محتوا برای توضیحات
@@ -33,7 +33,7 @@ export default function PostSchemaScript({
 
   const image = post.thumbnail
     ? post.thumbnail
-    : "/logo.png";
+    : "/logo.webp";
   const absoluteImageUrl = `${organizationUrl}${image}`;
 
   // 3. ساختار Schema Markup (BlogPosting)

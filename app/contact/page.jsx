@@ -158,7 +158,7 @@ export default function ContactPage() {
             >
               <div className="bg-gradient-to-br from-[#25D366] to-[#128C7E] rounded-[20px] p-5 flex items-center gap-5 relative overflow-hidden">
                 {/* Background Pattern */}
-                <div className="absolute inset-0 opacity-10 bg-[url('https://upload.wikimedia.org/wikipedia/commons/thumb/6/6b/WhatsApp.svg/1200px-WhatsApp.svg.png')] bg-center bg-no-repeat bg-contain blur-sm scale-150 translate-x-10"></div>
+                <div className="absolute inset-0 opacity-10  bg-center bg-no-repeat bg-contain blur-sm scale-150 translate-x-10"></div>
 
                 <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-lg shrink-0 relative z-10 group-hover:scale-110 transition-transform duration-300">
                   <MessageCircle

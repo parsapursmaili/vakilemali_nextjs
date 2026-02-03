@@ -166,7 +166,7 @@ const Header = () => {
             >
               <div className="relative w-14 h-14 sm:w-20 sm:h-20 transition-transform duration-300 group-hover:scale-105">
                 <Image
-                  src="/uploads/logo.png"
+                  src="/uploads/logo.webp"
                   alt="لوگو"
                   fill
                   priority
