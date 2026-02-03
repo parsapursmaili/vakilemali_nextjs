@@ -6,7 +6,7 @@ import dynamic from "next/dynamic";
 import Script from "next/script";
 
 const AdminBar = dynamic(() =>
-  import("@/components/AdminBar").then((mod) => mod.AdminBar)
+  import("@/components/AdminBar").then((mod) => mod.AdminBar),
 );
 
 export const metadata = {
@@ -33,15 +33,19 @@ export default async function RootLayout({ children }) {
         {/* اسکریپت Microsoft Clarity */}
         <Script
           id="microsoft-clarity-script"
-          strategy="lazyOnload"
+          strategy="afterInteractive"
           dangerouslySetInnerHTML={{
             __html: `
-              (function(c,l,a,r,i,t,y){
-                  c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
-                  t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
-                  y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
-              })(window, document, "clarity", "script", "u6ut03m13a");
-            `,
+      window.addEventListener('load', function() {
+        setTimeout(function() {
+          (function(c,l,a,r,i,t,y){
+              c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+              t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+              y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+          })(window, document, "clarity", "script", "u6ut03m13a");
+        }, 3000); // ۳ ثانیه صبر می‌کند تا صفحه کاملاً لود و پایدار شود
+      });
+    `,
           }}
         />
 
