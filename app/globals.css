@@ -88,34 +88,26 @@
 بخش ۲: استایل‌های رنگ‌دهی (Base Layer - Low Priority)
 --------------------------------------------------------------------------------
 */
+/* -------------------------------------------------------------------------- */
+/* لایه ۱: Base - فقط تگ‌های HTML */
+/* تنظیمات پیش‌فرض که روی همه چیز اعمال می‌شوند */
+/* -------------------------------------------------------------------------- */
 @layer base {
   body {
     background: var(--background);
     color: var(--foreground);
+    /* فونت و ... در بخش بادی که جدا داشتی */
   }
 
-  ::selection {
-    background: var(--selection-background);
-    color: var(--selection-foreground);
-  }
 
   a {
     color: var(--accent);
   }
-
   a:hover {
     color: var(--primary);
   }
 
-  h1,
-  h2,
-  h3,
-  h4,
-  h5,
-  h6 {
-    color: var(--foreground);
-  }
-
+  /* استایل فرم‌ها */
   input,
   textarea,
   select {
@@ -123,7 +115,6 @@
     color: var(--foreground);
     border-color: var(--input-border);
   }
-
   input:focus,
   textarea:focus,
   select:focus {
@@ -135,35 +126,41 @@
     color: var(--input-placeholder);
   }
 
+  ::selection {
+    background: var(--selection-background);
+    color: var(--selection-foreground);
+  }
+
+  /* استایل جدول (چون روی تگ‌های html است، اینجا جایش درست است) */
   thead th {
     background: var(--primary);
     color: var(--background);
   }
-
   tbody tr:nth-child(even) {
     background: var(--muted);
   }
-
   th,
   td {
     border-color: var(--muted);
   }
+}
 
-  .button-primary,
-  .button-secondary {
-    color: var(--background);
-  }
-
+/* -------------------------------------------------------------------------- */
+/* لایه ۲: Components - کلاس‌های اختصاصی شما */
+/* دکمه‌ها، کارت‌ها و کامپوننت‌های نوار پیشرفت */
+/* -------------------------------------------------------------------------- */
+@layer components {
   .button-primary {
     background: var(--primary);
+    color: var(--background);
   }
-
   .button-primary:hover {
     background: var(--primary-light);
   }
 
   .button-secondary {
     background: var(--secondary);
+    color: var(--background);
   }
 
   .card {
@@ -172,20 +169,19 @@
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   }
 
+  /* NProgress */
   #nprogress .bar {
     background: var(--accent);
     box-shadow:
       0 0 10px var(--accent),
       0 0 5px var(--accent);
   }
-
   #nprogress .peg {
     box-shadow:
       0 0 10px var(--accent),
       0 0 5px var(--accent);
   }
 }
-
 /*
 --------------------------------------------------------------------------------
 بخش ۳: ساختار و تایپوگرافی (High Priority - Outside Layer)
@@ -407,3 +403,6 @@ td {
   opacity: 1;
   transform: rotate(3deg) translate(0px, -4px);
 }
+
+
+

@@ -28,6 +28,11 @@ function processContentAndExtractTOC(html) {
   let content = processedParts.join("").replace(/<p>\s*<\/p>/g, "");
   content = content.replace(/<h1/g, "<h2").replace(/<\/h1>/g, "</h2>");
 
+  content = content.replace(
+    /(<table[\s\S]*?<\/table>)/gi,
+    '<div class="table-scroll-wrapper">$1</div>',
+  );
+
   const toc = [];
   const finalHtml = content.replace(
     /<h([2-3])(.*?)>(.*?)<\/h\1>/gi,
@@ -238,16 +243,46 @@ export default async function SinglePostPage({ params }) {
             <div className="w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
               <div
                 className="prose dark:prose-invert prose-blue rtl max-w-none
-                  prose-headings:font-bold prose-headings:text-primary 
-                  prose-headings:scroll-mt-24
-                  prose-h2:text-2xl prose-h3:text-xl 
-                  prose-p:leading-[2.1] prose-p:text-[17.5px] 
-                  md:prose-p:text-[18px] md:prose-p:leading-[2.2]
-                  prose-a:text-primary prose-a:no-underline hover:prose-a:underline 
-                  [&_img]:hidden [&_figure]:hidden
-                  max-w-prose
-                  lg:max-w-3xl
-                "
+                          prose-headings:font-bold prose-headings:text-primary 
+                          prose-headings:scroll-mt-24
+                          prose-h2:text-2xl prose-h3:text-xl 
+                          prose-p:leading-[2.1] prose-p:text-[17.5px] 
+                          md:prose-p:text-[18px] md:prose-p:leading-[2.2]
+                          prose-a:text-primary prose-a:no-underline hover:prose-a:underline 
+                          [&_img]:hidden [&_figure]:hidden
+                          max-w-prose
+                          lg:max-w-3xl
+                          prose-th:text-background 
+
+                          [&_.table-scroll-wrapper]:w-[calc(100%+4rem)] 
+                          [&_.table-scroll-wrapper]:-mx-8
+                          [&_.table-scroll-wrapper]:px-4
+                          [&_.table-scroll-wrapper]:overflow-x-auto
+                          [&_.table-scroll-wrapper::-webkit-scrollbar]:h-2
+                          [&_.table-scroll-wrapper::-webkit-scrollbar-thumb]:bg-[#cccccc]
+                          [&_.table-scroll-wrapper::-webkit-scrollbar-thumb]:dark:bg-[#444]
+                          [&_.table-scroll-wrapper::-webkit-scrollbar-thumb]:rounded
+                          sm:[&_.table-scroll-wrapper]:w-full
+                          sm:[&_.table-scroll-wrapper]:mx-0
+                          sm:[&_.table-scroll-wrapper]:px-0
+                          sm:[&_.table-scroll-wrapper]:overflow-visible
+                          sm:[&_.table-scroll-wrapper::-webkit-scrollbar]:h-auto
+                          sm:[&_.table-scroll-wrapper::-webkit-scrollbar-thumb]:bg-transparent
+                          [&_table]:w-full
+                          [&_table]:min-w-[550px]
+                          sm:[&_table]:min-w-0 
+                          [&_td]:text-[14px]
+                          [&_th]:text-[14px]
+                          [&_td]:align-middle
+                          [&_th]:whitespace-nowrap 
+                          [&_td]:whitespace-normal
+                          [&_td]:!border
+                          [&_th]:!border
+                          [&_td]:!border-gray-300
+                          [&_th]:!border-gray-300
+                          [&_td]:dark:!border-white/20
+                          [&_th]:dark:!border-white/20
+                        "
               >
                 <div dangerouslySetInnerHTML={{ __html: finalHtml }} />
               </div>

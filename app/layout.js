@@ -29,6 +29,7 @@ export default async function RootLayout({ children }) {
       style={{ colorScheme: "light" }}
       className={`${vazir.variable}`}
     >
+    
       <body className="antialiased bg-background text-foreground">
         {/* اسکریپت Microsoft Clarity */}
         <Script

@@ -327,14 +327,14 @@ export default async function HomePage({ searchParams }) {
                   <div className="flex flex-wrap items-center justify-center gap-1 mt-2 text-white/90 text-xs md:text-sm">
                     <span>می‌توانید از طریق</span>
                     <a
-                      href="https://t.me/vakil_mali"
+                      href="#"
                       className="font-bold text-[#3db4f2] hover:underline decoration-[#3db4f2]"
                     >
                       تلگرام
                     </a>
                     <span>یا</span>
                     <a
-                      href="https://eitaa.com/vakil_mali"
+                      href="#"
                       className="font-bold text-[#e46a23] hover:underline decoration-[#e46a23]"
                     >
                       پیام‌رسان ایتا
