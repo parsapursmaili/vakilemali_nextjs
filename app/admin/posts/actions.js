@@ -77,7 +77,7 @@ export async function getPostByIdForEditPage(postId) {
   try {
     const [rows] = await db.query(
       "SELECT id, title, slug, content, excerpt, thumbnail, status, created_at, updated_at, view_count, type, approved, video_link, redirect_url FROM posts WHERE id = ?",
-      [postId]
+      [postId],
     );
 
     if (!rows || rows.length === 0)
@@ -86,12 +86,12 @@ export async function getPostByIdForEditPage(postId) {
 
     const [termsResult] = await db.query(
       `SELECT t.id, t.name FROM terms t JOIN post_terms pt ON pt.term_id = t.id WHERE pt.post_id = ?`,
-      [post.id]
+      [post.id],
     );
 
     const [commentsResult] = await db.query(
       `SELECT id, author_name, content, created_at, status FROM comments WHERE post_id = ? ORDER BY created_at DESC`,
-      [post.id]
+      [post.id],
     );
 
     const postData = {
@@ -109,7 +109,7 @@ export async function getPostByIdForEditPage(postId) {
 export async function getAllTerms() {
   try {
     const [terms] = await db.query(
-      "SELECT id, name, slug, parent_id FROM terms ORDER BY name ASC"
+      "SELECT id, name, slug, parent_id FROM terms ORDER BY name ASC",
     );
     return { categories: terms, success: true };
   } catch (error) {
@@ -124,7 +124,7 @@ export async function searchPostsList(query) {
     const searchQuery = `%${query}%`;
     const [posts] = await db.query(
       "SELECT id, title, slug FROM posts WHERE title LIKE ? ORDER BY created_at DESC LIMIT 10",
-      [searchQuery]
+      [searchQuery],
     );
     return { posts, success: true };
   } catch (error) {
@@ -138,28 +138,83 @@ export async function updatePost(postId, formData) {
   try {
     await connection.beginTransaction();
 
-    const [oldData] = await connection.execute(
-      "SELECT slug FROM posts WHERE id = ?",
-      [postId]
+    // 1. دریافت اطلاعات فعلی پست از دیتابیس برای مقایسه
+    const [currentPostRows] = await connection.execute(
+      "SELECT * FROM posts WHERE id = ?",
+      [postId],
     );
-    const oldSlug = oldData[0]?.slug;
 
+    if (currentPostRows.length === 0) {
+      throw new Error("پست یافت نشد.");
+    }
+    const currentPost = currentPostRows[0];
+    const oldSlug = currentPost.slug;
+
+    // دریافت دسته‌بندی‌های فعلی
+    const [currentTerms] = await connection.execute(
+      "SELECT term_id FROM post_terms WHERE post_id = ?",
+      [postId],
+    );
+    const oldCategoryIds = currentTerms
+      .map((t) => t.term_id)
+      .sort((a, b) => a - b);
+
+    // 2. آماده‌سازی داده‌های جدید
     const title = formData.get("title");
     const slug = formData.get("slug");
     const content = formData.get("content");
     const excerpt = formData.get("excerpt");
     const status = formData.get("status");
     const thumbnail = formData.get("thumbnail");
-
-    // تغییر: اگر مقدار خالی بود، null قرار بده
     const video_link = formData.get("video_link") || "";
     const redirect_url = formData.get("redirect_url") || null;
-
     const approved = formData.get("approved") === "1" ? 1 : 0;
-    const categoryIds = formData.getAll("categories").map(Number);
+    const categoryIds = formData
+      .getAll("categories")
+      .map(Number)
+      .sort((a, b) => a - b);
 
+    // 3. مقایسه داده‌های جدید با داده‌های قدیمی
+    // تابع کمکی برای نرمال‌سازی مقادیر (تیدیل null به رشته خالی برای مقایسه)
+    const normalize = (val) =>
+      val === null || val === undefined ? "" : String(val);
+
+    const isCategoriesChanged =
+      JSON.stringify(oldCategoryIds) !== JSON.stringify(categoryIds);
+
+    const isContentChanged =
+      normalize(currentPost.title) !== normalize(title) ||
+      normalize(currentPost.slug) !== normalize(slug) ||
+      normalize(currentPost.content) !== normalize(content) ||
+      normalize(currentPost.excerpt) !== normalize(excerpt) ||
+      normalize(currentPost.status) !== normalize(status) ||
+      normalize(currentPost.thumbnail) !== normalize(thumbnail) ||
+      currentPost.approved !== approved || // مقایسه عددی
+      normalize(currentPost.video_link) !== normalize(video_link) ||
+      normalize(currentPost.redirect_url) !== normalize(redirect_url);
+
+    // اگر هیچ تغییری وجود نداشت، عملیات را متوقف کن
+    if (!isCategoriesChanged && !isContentChanged) {
+      await connection.commit(); // پایان تراکنش (حتی اگر تغییری نباشد باید کانکشن آزاد شود)
+      return { success: true, message: "هیچ تغییری اعمال نشد." };
+    }
+
+    // 4. اعمال تغییرات در صورت وجود تفاوت
+    // نکته مهم: created_at = created_at اضافه شده تا از آپدیت خودکار آن توسط MySQL جلوگیری شود
     await connection.execute(
-      `UPDATE posts SET title = ?, slug = ?, content = ?, excerpt = ?, status = ?, thumbnail = ?, approved = ?, video_link = ?, redirect_url = ?, updated_at = NOW() WHERE id = ?`,
+      `UPDATE posts SET 
+         title = ?, 
+         slug = ?, 
+         content = ?, 
+         excerpt = ?, 
+         status = ?, 
+         thumbnail = ?, 
+         approved = ?, 
+         video_link = ?, 
+         redirect_url = ?, 
+         updated_at = NOW(),
+         created_at = created_at 
+       WHERE id = ?`,
       [
         title,
         slug,
@@ -171,19 +226,22 @@ export async function updatePost(postId, formData) {
         video_link,
         redirect_url,
         postId,
-      ]
+      ],
     );
 
-    await connection.execute("DELETE FROM post_terms WHERE post_id = ?", [
-      postId,
-    ]);
+    // به‌روزرسانی دسته‌بندی‌ها در صورت تغییر
+    if (isCategoriesChanged) {
+      await connection.execute("DELETE FROM post_terms WHERE post_id = ?", [
+        postId,
+      ]);
 
-    if (categoryIds.length > 0) {
-      const termValues = categoryIds.map((termId) => [postId, termId]);
-      await connection.query(
-        "INSERT INTO post_terms (post_id, term_id) VALUES ?",
-        [termValues]
-      );
+      if (categoryIds.length > 0) {
+        const termValues = categoryIds.map((termId) => [postId, termId]);
+        await connection.query(
+          "INSERT INTO post_terms (post_id, term_id) VALUES ?",
+          [termValues],
+        );
+      }
     }
 
     await connection.commit();
@@ -220,7 +278,6 @@ export async function createPost(formData) {
     const status = formData.get("status");
     const thumbnail = formData.get("thumbnail");
 
-    // تغییر: اگر مقدار خالی بود، null قرار بده
     const video_link = formData.get("video_link") || "";
     const redirect_url = formData.get("redirect_url") || null;
 
@@ -239,7 +296,7 @@ export async function createPost(formData) {
         approved,
         video_link,
         redirect_url,
-      ]
+      ],
     );
 
     const postId = postResult.insertId;
@@ -248,7 +305,7 @@ export async function createPost(formData) {
       const termValues = categoryIds.map((termId) => [postId, termId]);
       await connection.query(
         "INSERT INTO post_terms (post_id, term_id) VALUES ?",
-        [termValues]
+        [termValues],
       );
     }
 
@@ -277,9 +334,12 @@ export async function quickEditPost(formData) {
     await connection.beginTransaction();
 
     const postId = formData.get("postId");
+
+    // اینجا هم برای quick edit می‌توانیم لاجیک created_at را رعایت کنیم
+    // و همچنین چک کنیم آیا تغییری بوده یا خیر (اختیاری ولی بهتر است)
     const [oldData] = await connection.execute(
       "SELECT slug FROM posts WHERE id = ?",
-      [postId]
+      [postId],
     );
     const oldSlug = oldData[0]?.slug;
 
@@ -288,9 +348,10 @@ export async function quickEditPost(formData) {
     const status = formData.get("status");
     const categoryIds = formData.getAll("categories").map(Number);
 
+    // افزودن created_at = created_at برای جلوگیری از تغییر تاریخ ایجاد
     await connection.execute(
-      "UPDATE posts SET title = ?, slug = ?, status = ?, updated_at = NOW() WHERE id = ?",
-      [title, slug, status, postId]
+      "UPDATE posts SET title = ?, slug = ?, status = ?, updated_at = NOW(), created_at = created_at WHERE id = ?",
+      [title, slug, status, postId],
     );
 
     await connection.query("DELETE FROM post_terms WHERE post_id = ?", [
@@ -301,7 +362,7 @@ export async function quickEditPost(formData) {
       const categoryValues = categoryIds.map((catId) => [postId, catId]);
       await connection.query(
         "INSERT INTO post_terms (post_id, term_id) VALUES ?",
-        [categoryValues]
+        [categoryValues],
       );
     }
 
@@ -332,7 +393,9 @@ export async function performBulkAction(action, postIds) {
     if (action === "delete") {
       query = "DELETE FROM posts WHERE id IN (?)";
     } else if (["draft", "published", "archived"].includes(action)) {
-      query = "UPDATE posts SET status = ? WHERE id IN (?)";
+      // در اینجا هم created_at = created_at را اضافه می‌کنیم
+      query =
+        "UPDATE posts SET status = ?, created_at = created_at WHERE id IN (?)";
       params = [action, postIds];
     } else {
       return { success: false, message: "عملیات نامعتبر است." };
@@ -358,7 +421,7 @@ export async function updateCommentStatus(commentId, status) {
     // گرفتن پست آیدی برای آپدیت کش آن صفحه (اختیاری)
     const [comment] = await db.query(
       "SELECT post_id FROM comments WHERE id = ?",
-      [commentId]
+      [commentId],
     );
     const postId = comment[0]?.post_id;
 
