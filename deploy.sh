@@ -10,11 +10,13 @@ docker build -t vakilemali:latest .
 docker stop vakilemali 2>/dev/null || true
 docker rm -f vakilemali 2>/dev/null || true
 
-# ۳. اصلاح دسترسی پوشه پابلیک
-echo "Fixing public folder permissions..."
+echo "Fixing public folder permissions with ACL..."
 mkdir -p /home/app_runner/vakilemali/public
-chown -R 1000:1000 /home/app_runner/vakilemali/public
-chmod -R 755 /home/app_runner/vakilemali/public
+sudo chown -R 1000:1000 /home/app_runner/vakilemali/public
+sudo chmod -R 755 /home/app_runner/vakilemali/public
+# دادن دسترسی دائمی به یوزر شما روی این پوشه
+sudo setfacl -R -m u:app_runner:rwx /home/app_runner/vakilemali/public
+sudo setfacl -R -d -m u:app_runner:rwx /home/app_runner/vakilemali/public
 
 # ۴. اجرا با متغیرهای محیطی ضروری برای رفع خطای 403
 echo "Running container..."
