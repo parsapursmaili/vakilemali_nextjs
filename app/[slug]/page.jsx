@@ -248,7 +248,7 @@ export default async function SinglePostPage({ params }) {
                           prose-h2:text-2xl prose-h3:text-xl 
                           prose-p:leading-[2.1] prose-p:text-[17.5px] 
                           md:prose-p:text-[18px] md:prose-p:leading-[2.2]
-                          prose-a:text-primary prose-a:no-underline hover:prose-a:underline 
+                          prose-a:text-[#c5892f] prose-a:no-underline hover:prose-a:underline 
                           [&_img]:hidden [&_figure]:hidden
                           max-w-prose
                           lg:max-w-3xl
