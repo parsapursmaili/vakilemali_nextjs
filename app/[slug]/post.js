@@ -100,13 +100,13 @@ export async function incrementPostViews(postId) {
     );
 
     // ارسال fire-and-forget به API بله
-    fetch(`${process.env.NEXT_PUBLIC_SITE_URL}/api/bale/visit`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ postId }),
-    }).catch((err) => {
-      console.error("[Bale API] Fetch Error:", err);
-    });
+    // fetch(`${process.env.NEXT_PUBLIC_SITE_URL}/api/bale/visit`, {
+    //   method: "POST",
+    //   headers: { "Content-Type": "application/json" },
+    //   body: JSON.stringify({ postId }),
+    // }).catch((err) => {
+    //   console.error("[Bale API] Fetch Error:", err);
+    // });
 
     // ثبت بازدید روزانه
     const today = new Date().toISOString().slice(0, 10);

@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'; // این خط را اضافه کنید
+
 import { db } from "@/lib/db/mysql";
 
 export default async function sitemap() {

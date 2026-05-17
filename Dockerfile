@@ -1,27 +1,18 @@
-# Stage 1: Build
-FROM node:20-alpine AS builder
+FROM node:20-alpine
+
 WORKDIR /app
+
+# نصب پکیج‌ها (این بخش کش میشه و سرعت میره بالا)
 COPY package*.json ./
 RUN npm install
+
+# کپی بقیه فایل‌ها
 COPY . .
-RUN npm run build
 
-# Stage 2: Run
-FROM node:20-alpine AS runner
-WORKDIR /app
-ENV NODE_ENV=production
+# پورت نسخه تست
+EXPOSE 3020
+ENV PORT=3020
+ENV NODE_ENV=development
 
-# استفاده از یوزر node (ID 1000)
-RUN mkdir -p .next/cache public && chown -R node:node /app
-
-# کپی فایل‌های Standalone
-COPY --from=builder --chown=node:node /app/.next/standalone ./
-COPY --from=builder --chown=node:node /app/.next/static ./.next/static
-COPY --from=builder --chown=node:node /app/public ./public
-COPY --chown=node:node .env* ./ 
-
-USER node
-EXPOSE 3000
-ENV PORT=3000
-
-CMD ["node", "server.js"]
+# اجرای مستقیم در حالت توسعه
+CMD ["npm", "run", "dev"]

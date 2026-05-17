@@ -31,24 +31,7 @@ export default async function RootLayout({ children }) {
     >
     
       <body className="antialiased bg-background text-foreground">
-        {/* اسکریپت Microsoft Clarity */}
-        <Script
-          id="microsoft-clarity-script"
-          strategy="afterInteractive"
-          dangerouslySetInnerHTML={{
-            __html: `
-      window.addEventListener('load', function() {
-        setTimeout(function() {
-          (function(c,l,a,r,i,t,y){
-              c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
-              t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
-              y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
-          })(window, document, "clarity", "script", "u6ut03m13a");
-        }, 3000); // ۳ ثانیه صبر می‌کند تا صفحه کاملاً لود و پایدار شود
-      });
-    `,
-          }}
-        />
+ 
 
         <AdminBar />
         <ProgressBarProvider />
