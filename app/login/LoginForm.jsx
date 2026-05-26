@@ -1,6 +1,8 @@
 "use client";
 
-import { useFormState, useFormStatus } from "react-dom";
+// ایمپورت هوک مدرن useActionState از پکیج اصلی react
+import { useActionState } from "react";
+import { useFormStatus } from "react-dom";
 import { login } from "@/actions/auth";
 import { KeyRound, LogIn, Loader2, TriangleAlert, Check } from "lucide-react";
 
@@ -32,7 +34,10 @@ disabled:bg-gray-400 disabled:cursor-not-allowed disabled:shadow-none"
  */
 export default function LoginForm() {
   const initialState = { success: true, message: null };
-  const [state, formAction] = useFormState(login, initialState);
+
+  // استفاده از هوک استاندارد React 19 به همراه متغیر سوم (isPending)
+  const [state, formAction, isPending] = useActionState(login, initialState);
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-50 p-4 font-sans antialiased">
       <div className="w-full max-w-md">
@@ -78,7 +83,7 @@ export default function LoginForm() {
               <KeyRound className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400 peer-focus:text-indigo-600 transition-colors" />
             </div>
 
-            {/* سوییچ جذاب "مرا به خاطر بسپار" (اصلاح شده) */}
+            {/* سوییچ جذاب "مرا به خاطر بسپار" */}
             <div className="flex items-center justify-between">
               <label
                 htmlFor="remember-me"
@@ -97,14 +102,14 @@ export default function LoginForm() {
                     className="h-7 w-14 rounded-full bg-gray-300 transition-colors duration-300 peer-checked:bg-indigo-600"
                     aria-hidden
                   ></div>
-                  {/* اهرم متحرک سوییچ (هم‌سطح با input و دارای position absolute) */}
+                  {/* اهرم متحرک سوییچ */}
                   <div
                     className="absolute left-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-white shadow-md
                                text-transparent transition-all duration-300 ease-in-out
                                peer-checked:translate-x-7 peer-checked:text-indigo-600"
                     aria-hidden
                   >
-                    {/* آیکون چک (رنگ خود را از والد به ارث می‌برد) */}
+                    {/* آیکون چک */}
                     <Check className="h-4 w-4" />
                   </div>
                 </div>

@@ -6,11 +6,7 @@ const nextConfig = {
   },
   output: "standalone",
   images: {
-    unoptimized: true, // خیالت راحت، این یعنی نکست جی‌اس فقط آدرس را چاپ می‌کند و دخالتی نمی‌کند
-    remotePatterns: [
-      { protocol: "https", hostname: "**.vakilemali.ir" },
-      { protocol: "https", hostname: "**.gravatar.com" },
-    ],
+    unoptimized: true,
   },
   async redirects() {
     return [

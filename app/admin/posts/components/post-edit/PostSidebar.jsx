@@ -20,13 +20,6 @@ import {
 } from "lucide-react";
 import { searchPostsList } from "../../actions";
 
-const imageApiLoader = ({ src }) => {
-  if (src.startsWith("http")) return src;
-  const relativePath = src.startsWith("/uploads/")
-    ? src.substring("/uploads/".length)
-    : src;
-  return `/media/${relativePath}`;
-};
 
 function SidebarAccordion({
   title,
@@ -418,7 +411,7 @@ export default function PostSidebar({
           {postData.thumbnail ? (
             <div className="relative w-full aspect-video rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 group">
               <Image
-                src={`/uploads/${postData.thumbnail}`}
+                src={postData.thumbnail}
                 alt="پیش‌نمایش"
                 fill
                 className="object-cover transition-transform duration-500 group-hover:scale-105"

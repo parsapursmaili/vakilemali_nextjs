@@ -68,10 +68,7 @@ export default function MediaLibrary({ onClose, onSelectImage }) {
         success: async (res) => {
           const result = await res.json();
           if (result.success) {
-            const relativeUrl = result.url.startsWith("/uploads/")
-              ? result.url.substring("/uploads/".length)
-              : result.url;
-            onSelectImage(relativeUrl);
+            onSelectImage(result.url);
             onClose();
             return "آپلود موفقیت‌آمیز بود!";
           } else {
@@ -90,7 +87,7 @@ export default function MediaLibrary({ onClose, onSelectImage }) {
         <header className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
           <h2 className="text-lg font-bold">کتابخانه رسانه</h2>
           <button
-            type="button" // Important!
+            type="button"
             onClick={onClose}
             className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
           >
@@ -103,7 +100,7 @@ export default function MediaLibrary({ onClose, onSelectImage }) {
           <aside className="w-48 border-l border-gray-200 dark:border-gray-700 p-4 bg-gray-50 dark:bg-gray-800/50">
             <nav className="space-y-2">
               <button
-                type="button" // Important!
+                type="button"
                 onClick={() => setActiveTab("library")}
                 className={`w-full flex items-center gap-3 p-2 rounded-md text-sm font-medium transition-colors ${
                   activeTab === "library"
@@ -115,7 +112,7 @@ export default function MediaLibrary({ onClose, onSelectImage }) {
                 <span>کتابخانه</span>
               </button>
               <button
-                type="button" // Important!
+                type="button"
                 onClick={() => setActiveTab("upload")}
                 className={`w-full flex items-center gap-3 p-2 rounded-md text-sm font-medium transition-colors ${
                   activeTab === "upload"
@@ -145,10 +142,7 @@ export default function MediaLibrary({ onClose, onSelectImage }) {
                         key={file.url}
                         className="aspect-square border rounded-md overflow-hidden cursor-pointer group relative"
                         onClick={() => {
-                          const relativeUrl = file.url.startsWith("/uploads/")
-                            ? file.url.substring("/uploads/".length)
-                            : file.url;
-                          onSelectImage(relativeUrl);
+                          onSelectImage(file.url);
                         }}
                       >
                         <Image
@@ -199,7 +193,7 @@ export default function MediaLibrary({ onClose, onSelectImage }) {
                       />
                       <div className="flex gap-4">
                         <button
-                          type="button" // Important!
+                          type="button"
                           onClick={handleUpload}
                           disabled={isUploading}
                           className="button-primary"
@@ -207,7 +201,7 @@ export default function MediaLibrary({ onClose, onSelectImage }) {
                           {isUploading ? "در حال آپلود..." : "آپلود و انتخاب"}
                         </button>
                         <button
-                          type="button" // Important!
+                          type="button"
                           onClick={() => {
                             setSelectedFile(null);
                             setPreview(null);

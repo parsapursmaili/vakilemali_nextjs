@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import PostsSlider from "@/components/PostsSlider";
 import FilterControls from "./FilterControls";
 import Pagination from "./Pagination";
@@ -9,15 +10,17 @@ export const metadata = {
     "جدیدترین مقالات حقوقی در حوزه مالیات، طلاق و خانواده، چک و سفته، ارث و میراث، دعاوی کیفری، قراردادها و … به قلم وکلای پایه یک دادگستری. آموزش رایگان + راهکارهای عملی.",
 };
 
-export default async function ArticlesPage({ searchParams }) {
+export default async function ArticlesPage(props) {
+  const searchParams = await props.searchParams;
   const page = parseInt(searchParams.page) || 1;
   const sort = searchParams.sort || "newest";
-  const categoryId = searchParams.category || null; // ✅ تغییر: دریافت category ID به جای category slug
+  const categoryId = searchParams.category || null;
 
   const [categories, { posts, totalPages, currentPage }] = await Promise.all([
     getCategories(),
-    getPaginatedPosts({ page, sortBy: sort, categoryId: categoryId }), // ✅ تغییر: ارسال categoryId به جای categorySlug
+    getPaginatedPosts({ page, sortBy: sort, categoryId: categoryId }),
   ]);
+
   return (
     <section className="w-full py-10">
       <div className="w-full max-w-7xl mx-auto px-4">
@@ -27,7 +30,14 @@ export default async function ArticlesPage({ searchParams }) {
         <p className="text-lg text-muted-foreground mb-8 text-center">
           جدیدترین مطالب ما را در دسته‌بندی‌های مختلف جستجو و مطالعه کنید.
         </p>
-        <FilterControls categories={categories} />
+
+        <Suspense
+          fallback={
+            <div className="h-12 bg-gray-100 animate-pulse rounded-lg mb-8" />
+          }
+        >
+          <FilterControls categories={categories} />
+        </Suspense>
 
         {posts && posts.length > 0 ? (
           <PostsSlider posts={posts} />

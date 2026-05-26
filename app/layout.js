@@ -29,15 +29,13 @@ export default async function RootLayout({ children }) {
       style={{ colorScheme: "light" }}
       className={`${vazir.variable}`}
     >
-    
       <body className="antialiased bg-background text-foreground">
- 
-
         <AdminBar />
         <ProgressBarProvider />
         <Header />
 
-        <main className="container mx-auto px-4 py-8">{children}</main>
+        {/* حذف تگ کانتینر main جهت رفع تداخل ساختاری و برطرف شدن پدینگ در سکشن‌های تمام صفحه */}
+        {children}
       </body>
     </html>
   );

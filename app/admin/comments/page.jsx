@@ -31,7 +31,8 @@ function nestComments(flatComments) {
   flatComments.forEach((c) => {
     if (c.parent_id && commentMap[c.parent_id]) {
       commentMap[c.parent_id].children.push(commentMap[c.id]);
-    } else if (!c.parent_id) {
+    } else {
+      // اگر شناسه والد وجود ندارد، یا والد آن در صفحه جاری نیست، در ریشه نمایش داده شود
       nested.push(commentMap[c.id]);
     }
   });

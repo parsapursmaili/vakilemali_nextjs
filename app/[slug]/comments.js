@@ -12,7 +12,7 @@ export async function getCommentsData(postId) {
   try {
     const [comments] = await db.query(
       "SELECT id, parent_id, author_name, content, created_at FROM comments WHERE post_id = ? AND status = 'approved' ORDER BY created_at ASC",
-      [postId]
+      [postId],
     );
     // منطق ساده برای ساختار درختی (Nested) کامنت‌ها
     const commentsMap = {};
@@ -49,11 +49,10 @@ export async function submitComment(prevState, formData) {
     ? parseInt(formData.get("parentId"))
     : null;
   const authorName = formData.get("author_name");
-  const authorEmail = formData.get("author_email"); // برای رعایت ساختار دیتابیس
+  const authorEmail = formData.get("author_email");
   const content = formData.get("content");
   const postSlug = formData.get("postSlug");
 
-  // اعتبارسنجی اولیه
   if (!authorName || !content || !postId || !postSlug) {
     return { success: false, message: "لطفاً نام و متن نظر را وارد کنید." };
   }
@@ -61,11 +60,10 @@ export async function submitComment(prevState, formData) {
   try {
     await db.execute(
       "INSERT INTO comments (post_id, parent_id, author_name, author_email, content, status) VALUES (?, ?, ?, ?, ?, 'pending')",
-      [postId, parentId, authorName, authorEmail, content] // email را اختیاری در نظر می‌گیریم اگر کاربر نخواهد پر کند
+      [postId, parentId, authorName, authorEmail, content],
     );
 
-    // Revalidate کردن مسیر پست برای اطمینان از تازگی داده‌ها (اختیاری است، Client Component کامنت‌ها را مجدداً واکشی می‌کند)
-    revalidatePath(`/posts/${postSlug}`);
+    revalidatePath(`/${postSlug}`);
 
     return {
       success: true,

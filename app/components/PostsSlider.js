@@ -32,7 +32,7 @@ export default function PostsSlider({ posts, title }) {
                 <div className="aspect-square">
                   {post.thumbnail ? (
                     <Image
-                      src={`/uploads/${post.thumbnail}`}
+                      src={post.thumbnail}
                       alt={post.title}
                       fill
                       className="object-cover transition-transform duration-500 group-hover:scale-110"

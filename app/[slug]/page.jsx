@@ -142,7 +142,7 @@ export default async function SinglePostPage({ params }) {
                 <div className="group relative overflow-hidden rounded-2xl sm:rounded-3xl bg-white dark:bg-[#0f0f0f] shadow-lg ring-1 ring-black/5 dark:ring-white/10 transition-all duration-500 hover:shadow-2xl hover:shadow-primary/10">
                   <div className="aspect-square w-full relative">
                     <Image
-                      src={`/uploads/${post.thumbnail}`}
+                      src={post.thumbnail}
                       alt={post.title}
                       fill
                       className="object-cover"
@@ -239,55 +239,67 @@ export default async function SinglePostPage({ params }) {
             </nav>
           )}
 
+          {/* آغاز بخش اصلاح شده نمایش محتوای متنی با اصلاحات هجومی */}
           <div className="text-foreground leading-loose text-justify">
             <div className="w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
               <div
-                className="prose dark:prose-invert prose-blue rtl max-w-none
-                          prose-headings:font-bold prose-headings:text-primary 
-                          prose-headings:scroll-mt-24
-                          prose-h2:text-2xl prose-h3:text-xl 
-                          prose-p:leading-[2.1] prose-p:text-[17.5px] 
-                          md:prose-p:text-[18px] md:prose-p:leading-[2.2]
-                           prose-a:text-[#c5892f] prose-a:no-underline hover:prose-a:underline 
-                          [&_img]:hidden [&_figure]:hidden
-                          max-w-prose
-                          lg:max-w-3xl
-                          prose-th:text-background 
+                className="prose dark:prose-invert prose-blue rtl max-w-none max-w-prose lg:max-w-3xl
+            
+            /* تایپوگرافی عمومی و فواصل متن */
+            prose-headings:font-bold prose-headings:text-primary prose-headings:scroll-mt-24
+            prose-h2:text-2xl prose-h3:text-xl 
+            prose-p:leading-[2.1] prose-p:text-[17.5px] md:prose-p:text-[18px] md:prose-p:leading-[2.2]
+            prose-a:text-[#c5892f] prose-a:no-underline hover:prose-a:underline 
+            
+            /* مخفی کردن رسانه‌های غیرضروری */
+            [&_img]:hidden [&_figure]:hidden
 
-                          [&_.table-scroll-wrapper]:w-[calc(100%+4rem)] 
-                          [&_.table-scroll-wrapper]:-mx-8
-                          [&_.table-scroll-wrapper]:px-4
-                          [&_.table-scroll-wrapper]:overflow-x-auto
-                          [&_.table-scroll-wrapper::-webkit-scrollbar]:h-2
-                          [&_.table-scroll-wrapper::-webkit-scrollbar-thumb]:bg-[#cccccc]
-                          [&_.table-scroll-wrapper::-webkit-scrollbar-thumb]:dark:bg-[#444]
-                          [&_.table-scroll-wrapper::-webkit-scrollbar-thumb]:rounded
-                          sm:[&_.table-scroll-wrapper]:w-full
-                          sm:[&_.table-scroll-wrapper]:mx-0
-                          sm:[&_.table-scroll-wrapper]:px-0
-                          sm:[&_.table-scroll-wrapper]:overflow-visible
-                          sm:[&_.table-scroll-wrapper::-webkit-scrollbar]:h-auto
-                          sm:[&_.table-scroll-wrapper::-webkit-scrollbar-thumb]:bg-transparent
-                          [&_table]:w-full
-                          [&_table]:min-w-[550px]
-                          sm:[&_table]:min-w-0 
-                          [&_td]:text-[14px]
-                          [&_th]:text-[14px]
-                          [&_td]:align-middle
-                          [&_th]:whitespace-nowrap 
-                          [&_td]:whitespace-normal
-                          [&_td]:!border
-                          [&_th]:!border
-                          [&_td]:!border-gray-300
-                          [&_th]:!border-gray-300
-                          [&_td]:dark:!border-white/20
-                          [&_th]:dark:!border-white/20
-                        "
+            /* === اصلاح هجومی لیست‌ها (رفع قطعی پریدن خط و ناترازی بولت/شماره) === */
+            [&_ol]:!list-decimal [&_ol]:!ps-8 [&_ol]:!my-6
+            [&_ul]:!list-disc [&_ul]:!ps-8 [&_ul]:!my-6
+            [&_li]:!list-item [&_li]:!my-3 [&_li]:!leading-relaxed
+            /* حذف شبه‌المان‌های پیش‌فرض Tailwind Prose که تراز را خراب می‌کردند */
+            [&_li::before]:!content-none [&_li::before]:!hidden
+            /* اجبار تگ‌های p درون لیست به رفتار خطی بدون مارجین اضافی */
+            [&_li_p]:!inline [&_li_p]:!m-0 [&_li_p]:!p-0 [&_li_p]:!leading-relaxed
+
+            /* === اصلاح هجومی جدول‌ها (رفع غیب شدن متن هدر و فواصل داخلی سلول‌ها) === */
+            [&_table]:!w-full [&_table]:!border-collapse [&_table]:min-w-[550px] sm:[&_table]:min-w-0
+            /* حذف مارجین تگ‌های p داخل جدول برای هم‌تراز شدن متن سلول‌ها */
+            [&_td_p]:!m-0 [&_td_p]:!p-0 [&_td_p]:!inline-block [&_td_p]:!leading-normal
+            [&_th_p]:!m-0 [&_th_p]:!p-0 [&_th_p]:!inline-block [&_th_p]:!leading-normal
+            /* رنگ‌بندی و پدینگ متمایز و خوانا برای هدر جدول */
+            [&_th]:!bg-gray-100 [&_th]:dark:!bg-neutral-800/80
+            [&_th]:!text-gray-900 [&_th]:dark:!text-gray-100
+            [&_th]:!font-bold [&_th]:!p-3 [&_th]:whitespace-nowrap
+            /* استایل سلول‌های بدنه جدول */
+            [&_td]:!p-3 [&_td]:whitespace-normal [&_td]:align-middle [&_td]:text-[14px]
+            /* مرزها و خطوط جدول */
+            [&_td]:!border [&_th]:!border
+            [&_td]:!border-gray-300 [&_th]:!border-gray-300
+            [&_td]:dark:!border-white/20 [&_th]:dark:!border-white/20
+
+            /* تنظیمات کانتینر اسکرول جدول */
+            [&_.table-scroll-wrapper]:w-[calc(100%+4rem)] 
+            [&_.table-scroll-wrapper]:-mx-8
+            [&_.table-scroll-wrapper]:px-4
+            [&_.table-scroll-wrapper]:overflow-x-auto
+            [&_.table-scroll-wrapper::-webkit-scrollbar]:h-2
+            [&_.table-scroll-wrapper::-webkit-scrollbar-thumb]:bg-[#cccccc]
+            [&_.table-scroll-wrapper::-webkit-scrollbar-thumb]:dark:bg-[#444]
+            [&_.table-scroll-wrapper::-webkit-scrollbar-thumb]:rounded
+            sm:[&_.table-scroll-wrapper]:w-full
+            sm:[&_.table-scroll-wrapper]:mx-0
+            sm:[&_.table-scroll-wrapper]:px-0
+            sm:[&_.table-scroll-wrapper]:overflow-visible
+            sm:[&_.table-scroll-wrapper::-webkit-scrollbar]:h-auto
+            sm:[&_.table-scroll-wrapper::-webkit-scrollbar-thumb]:bg-transparent"
               >
                 <div dangerouslySetInnerHTML={{ __html: finalHtml }} />
               </div>
             </div>
           </div>
+          {/* پایان بخش اصلاح شده */}
         </article>
 
         <div className="w-full sm:max-w-4xl sm:mx-auto mt-6 px-4 sm:px-0">

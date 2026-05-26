@@ -7,18 +7,13 @@ const COOKIE_NAME = "admin-auth-token";
 const secret = new TextEncoder().encode(process.env.ADMIN_AUTH_SECRET);
 
 export async function isAuthenticated() {
-  const t1 = performance.now();
   const token = (await cookies()).get(COOKIE_NAME)?.value;
   if (!token) {
-    const t2 = performance.now();
-    const t = t2 - t1;
     return false;
   }
 
   try {
     await jose.jwtVerify(token, secret);
-    const t2 = performance.now();
-    const t = t2 - t1;
     return true;
   } catch (error) {
     return false;
@@ -41,7 +36,10 @@ export async function login(prevState, formData) {
     .sign(secret);
 
   const maxAgeInSeconds = rememberMe === "on" ? 30 * 24 * 60 * 60 : 2 * 60 * 60;
-  cookies().set(COOKIE_NAME, token, {
+
+  // رفع مشکل عدم وجود await برای تابع cookies() در Next.js 15
+  const cookieStore = await cookies();
+  cookieStore.set(COOKIE_NAME, token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "strict",
@@ -53,7 +51,8 @@ export async function login(prevState, formData) {
 }
 
 export async function logout() {
-  cookies().delete(COOKIE_NAME);
-  // پیشنهاد: برای تجربه کاربری بهتر، پس از خروج کاربر را به صفحه‌ای هدایت کنید.
+  // رفع مشکل عدم وجود await برای تابع cookies() در Next.js 15
+  const cookieStore = await cookies();
+  cookieStore.delete(COOKIE_NAME);
   redirect("/");
 }

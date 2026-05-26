@@ -3,6 +3,19 @@
 import { Check, Copy, ExternalLink, Library, FileText } from "lucide-react";
 import { useState } from "react";
 import { toast } from "react-hot-toast";
+import dynamic from "next/dynamic";
+
+// بارگذاری پویا و ممانعت از رندر سمت سرور برای ادیتور پیشرفته
+const TiptapEditor = dynamic(() => import("./TiptapEditor"), {
+  ssr: false,
+  loading: () => (
+    <div className="h-[400px] flex items-center justify-center border-2 border-dashed border-gray-300 rounded-lg bg-white dark:bg-gray-900">
+      <span className="text-sm text-gray-400 font-bold animate-pulse">
+        در حال بارگذاری ویرایشگر دیداری...
+      </span>
+    </div>
+  ),
+});
 
 export default function PostMainContent({
   postData,
@@ -13,6 +26,7 @@ export default function PostMainContent({
   initialPostId,
 }) {
   const [isCopied, setIsCopied] = useState(false);
+  const [activeTab, setActiveTab] = useState("html"); // به درخواست شما، به صورت پیش‌فرض روی حالت 'html' است
   const MAX_EXCERPT_LENGTH = 160;
 
   const handleCopyLink = () => {
@@ -22,7 +36,7 @@ export default function PostMainContent({
         setIsCopied(true);
         setTimeout(() => setIsCopied(false), 2500);
       },
-      (err) => toast.error("خطا در کپی کردن لینک!")
+      (err) => toast.error("خطا در کپی کردن لینک!"),
     );
   };
 
@@ -83,21 +97,57 @@ export default function PostMainContent({
         </div>
       )}
 
-      {/* Content */}
-      <div>
-        <label htmlFor="content" className="text-sm font-medium mb-1 block">
-          محتوای اصلی (HTML خام)
-        </label>
-        <textarea
-          id="content"
-          name="content"
-          rows="20"
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          className="w-full text-sm p-4 h-[500px] !direction-ltr !text-left font-mono"
-          placeholder="کد HTML محتوای اصلی پست را اینجا وارد کنید..."
-          required
-        ></textarea>
+      {/* بخش محتوای اصلی به همراه تب‌های انتخابی */}
+      <div className="space-y-2">
+        <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 pb-2">
+          <label
+            htmlFor="content"
+            className="text-sm font-bold text-gray-700 dark:text-gray-300"
+          >
+            محتوای اصلی نوشته
+          </label>
+          {/* تب‌های تغییر حالت ویرایشگر */}
+          <div className="flex bg-gray-100 dark:bg-gray-800 p-1 rounded-lg text-xs font-semibold select-none">
+            <button
+              type="button"
+              onClick={() => setActiveTab("html")}
+              className={`px-3 py-1.5 rounded-md transition-all ${
+                activeTab === "html"
+                  ? "bg-white dark:bg-gray-900 text-primary font-bold shadow-sm"
+                  : "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+              }`}
+            >
+              کد HTML خام
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab("visual")}
+              className={`px-3 py-1.5 rounded-md transition-all ${
+                activeTab === "visual"
+                  ? "bg-white dark:bg-gray-900 text-primary font-bold shadow-sm"
+                  : "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+              }`}
+            >
+              دیداری (Visual Editor)
+            </button>
+          </div>
+        </div>
+
+        {/* نمایش شرطی ویرایشگر بر اساس تب انتخاب شده */}
+        {activeTab === "html" ? (
+          <textarea
+            id="content"
+            name="content"
+            rows="20"
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            className="w-full text-sm p-4 h-[500px] !direction-ltr !text-left font-mono border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+            placeholder="کد HTML محتوای اصلی پست را اینجا وارد کنید..."
+            required
+          ></textarea>
+        ) : (
+          <TiptapEditor content={content} onChange={setContent} />
+        )}
       </div>
 
       {/* Video Content */}

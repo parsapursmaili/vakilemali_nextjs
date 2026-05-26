@@ -1,11 +1,47 @@
 /*
 ================================================================================
-فایل استایل‌های سراسری (Global Stylesheet) - نسخه اصلاح شده با تفکیک لایه‌ها
+فایل استایل‌های سراسری (Global Stylesheet) - نسخه کاملاً بومی و منطبق بر Tailwind CSS v4
 ================================================================================
 */
 
-@config "../tailwind.config.js";
 @import "tailwindcss";
+@plugin "@tailwindcss/typography";
+
+/* فعال‌سازی قابلیت دارک مود به کمک کلاس .dark روی ریشه سند */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* تعریف و نگاشت متغیرهای بومی تم در تایلوند نسخه ۴ */
+@theme {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-primary: var(--primary);
+  --color-primary-light: var(--primary-light);
+  --color-secondary: var(--secondary);
+  --color-accent: var(--accent);
+  --color-muted: var(--muted);
+  --color-destructive: var(--destructive);
+  --color-error: var(--error);
+  --color-error-background: var(--error-background);
+  --color-error-border: var(--error-border);
+
+  --font-sans: var(--font-sans);
+
+  --text-base: var(--font-size-base);
+  --text-h1: var(--font-size-h1);
+  --text-h2: var(--font-size-h2);
+  --text-h3: var(--font-size-h3);
+  --text-h4: var(--font-size-h4);
+  --text-h5: var(--font-size-h5);
+  --text-h6: var(--font-size-h6);
+
+  --leading-base: var(--line-height-base);
+  --leading-headings: var(--line-height-headings);
+
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+  --radius-full: var(--radius-full);
+}
 
 /*
 --------------------------------------------------------------------------------
@@ -88,17 +124,11 @@
 بخش ۲: استایل‌های رنگ‌دهی (Base Layer - Low Priority)
 --------------------------------------------------------------------------------
 */
-/* -------------------------------------------------------------------------- */
-/* لایه ۱: Base - فقط تگ‌های HTML */
-/* تنظیمات پیش‌فرض که روی همه چیز اعمال می‌شوند */
-/* -------------------------------------------------------------------------- */
 @layer base {
   body {
     background: var(--background);
     color: var(--foreground);
-    /* فونت و ... در بخش بادی که جدا داشتی */
   }
-
 
   a {
     color: var(--accent);
@@ -131,7 +161,7 @@
     color: var(--selection-foreground);
   }
 
-  /* استایل جدول (چون روی تگ‌های html است، اینجا جایش درست است) */
+  /* استایل جدول */
   thead th {
     background: var(--primary);
     color: var(--background);
@@ -147,7 +177,6 @@
 
 /* -------------------------------------------------------------------------- */
 /* لایه ۲: Components - کلاس‌های اختصاصی شما */
-/* دکمه‌ها، کارت‌ها و کامپوننت‌های نوار پیشرفت */
 /* -------------------------------------------------------------------------- */
 @layer components {
   .button-primary {
@@ -182,6 +211,7 @@
       0 0 5px var(--accent);
   }
 }
+
 /*
 --------------------------------------------------------------------------------
 بخش ۳: ساختار و تایپوگرافی (High Priority - Outside Layer)
@@ -404,5 +434,12 @@ td {
   transform: rotate(3deg) translate(0px, -4px);
 }
 
-
-
+/* رفع فاصله ناخواسته پاراگراف‌های درون لیست در کلاس prose */
+.prose ul > li > p:first-of-type,
+.prose ol > li > p:first-of-type {
+  margin-top: 0 !important;
+}
+.prose ul > li > p:last-of-type,
+.prose ol > li > p:last-of-type {
+  margin-bottom: 0 !important;
+}

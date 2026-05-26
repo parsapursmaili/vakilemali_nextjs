@@ -2,7 +2,8 @@ import { getStatisticsData } from "./statisticsActions";
 import StatisticsClient from "./StatisticsClient";
 import { Suspense } from "react";
 
-export default async function Page({ searchParams }) {
+export default async function Page(props) {
+  const searchParams = await props.searchParams;
   const period = searchParams.period || "today";
   const initialData = await getStatisticsData({
     period,
