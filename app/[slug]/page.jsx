@@ -243,6 +243,7 @@ export default async function SinglePostPage({ params }) {
           <div className="text-foreground leading-loose text-justify">
             <div className="w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
               <div
+<<<<<<< HEAD
                 className="prose dark:prose-invert prose-blue rtl max-w-none max-w-prose lg:max-w-3xl
             
             /* تایپوگرافی عمومی و فواصل متن */
@@ -253,6 +254,19 @@ export default async function SinglePostPage({ params }) {
             
             /* مخفی کردن رسانه‌های غیرضروری */
             [&_img]:hidden [&_figure]:hidden
+=======
+                className="prose dark:prose-invert prose-blue rtl max-w-none
+                          prose-headings:font-bold prose-headings:text-primary 
+                          prose-headings:scroll-mt-24
+                          prose-h2:text-2xl prose-h3:text-xl 
+                          prose-p:leading-[2.1] prose-p:text-[17.5px] 
+                          md:prose-p:text-[18px] md:prose-p:leading-[2.2]
+                          prose-a:text-[#c5892f] prose-a:no-underline hover:prose-a:underline 
+                          [&_img]:hidden [&_figure]:hidden
+                          max-w-prose
+                          lg:max-w-3xl
+                          prose-th:text-background 
+>>>>>>> origin/master
 
             /* === اصلاح هجومی لیست‌ها (رفع قطعی پریدن خط و ناترازی بولت/شماره) === */
             [&_ol]:!list-decimal [&_ol]:!ps-8 [&_ol]:!my-6
